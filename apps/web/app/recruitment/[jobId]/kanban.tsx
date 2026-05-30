@@ -1,11 +1,13 @@
 "use client";
 
+import Link from "next/link";
 import { useActionState } from "react";
 import type { Board } from "@/lib/api";
 import { moveApplicationAction, type MoveState } from "../actions";
 
 /// Interactive Kanban: each candidate card shows a move control (to adjacent stages) when the
-/// user holds application.move. Moves go through a server action -> API -> revalidate (§14.3).
+/// user holds application.move, and links to the application detail (offers + scorecards). Moves go
+/// through a server action -> API -> revalidate (§14.3).
 export function Kanban({ board, canMove }: { board: Board; canMove: boolean }) {
   const stageKeys = board.columns.map((c) => c.key);
 
@@ -21,6 +23,7 @@ export function Kanban({ board, canMove }: { board: Board; canMove: boolean }) {
             {col.cards.map((card) => (
               <Card
                 key={card.applicationId}
+                jobId={board.jobId}
                 card={card}
                 stageKeys={stageKeys}
                 canMove={canMove}
@@ -35,10 +38,12 @@ export function Kanban({ board, canMove }: { board: Board; canMove: boolean }) {
 }
 
 function Card({
+  jobId,
   card,
   stageKeys,
   canMove,
 }: {
+  jobId: string;
   card: { applicationId: string; candidateName: string; matchScore: number | null; stage: string };
   stageKeys: string[];
   canMove: boolean;
@@ -83,6 +88,13 @@ function Card({
         </div>
       )}
       {state.error && <p className="mt-1 text-xs text-red-600">{state.error}</p>}
+
+      <Link
+        href={`/recruitment/${jobId}/applications/${card.applicationId}`}
+        className="mt-2 block text-xs text-gray-500 hover:text-gray-800 hover:underline"
+      >
+        View offers &amp; scorecards →
+      </Link>
     </div>
   );
 }

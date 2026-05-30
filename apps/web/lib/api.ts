@@ -127,3 +127,74 @@ export async function moveApplication(id: string, toStage: string): Promise<Resu
   const res = await authed(`/v1/applications/${id}/move`, { method: "POST", body: JSON.stringify({ toStage }) });
   return { ok: res.ok, status: res.status };
 }
+
+// ---- Offers ----
+
+export type Offer = {
+  id: string;
+  applicationId: string;
+  salary: number | null;
+  currency: string | null;
+  status: string; // draft|sent|accepted|declined
+  sentAt: string | null;
+  respondedAt: string | null;
+};
+
+export async function listOffers(applicationId: string): Promise<Offer[]> {
+  const res = await authed(`/v1/applications/${applicationId}/offers`);
+  if (!res.ok) throw new Error(`Failed to load offers (${res.status})`);
+  return (await res.json()) as Offer[];
+}
+
+export async function createOffer(
+  applicationId: string,
+  input: { salary: number | null; currency: string | null },
+): Promise<Result> {
+  const res = await authed(`/v1/applications/${applicationId}/offers`, { method: "POST", body: JSON.stringify(input) });
+  return { ok: res.ok, status: res.status };
+}
+
+export async function sendOffer(offerId: string): Promise<Result> {
+  const res = await authed(`/v1/offers/${offerId}/send`, { method: "POST" });
+  return { ok: res.ok, status: res.status };
+}
+
+export async function respondOffer(offerId: string, decision: "accepted" | "declined"): Promise<Result> {
+  const res = await authed(`/v1/offers/${offerId}/respond`, { method: "POST", body: JSON.stringify({ decision }) });
+  return { ok: res.ok, status: res.status };
+}
+
+// ---- Interviews / scorecards ----
+
+export type Interview = {
+  id: string;
+  applicationId: string;
+  scheduledAt: string | null;
+  interviewers: string[];
+  rollupScore: number | null;
+  recommendation: string | null;
+};
+
+export type CompetencyScore = { name: string; weight: number; score: number };
+
+export async function listInterviews(applicationId: string): Promise<Interview[]> {
+  const res = await authed(`/v1/applications/${applicationId}/interviews`);
+  if (!res.ok) throw new Error(`Failed to load interviews (${res.status})`);
+  return (await res.json()) as Interview[];
+}
+
+export async function scheduleInterview(
+  applicationId: string,
+  input: { scheduledAt: string | null; interviewers: string[] },
+): Promise<Result> {
+  const res = await authed(`/v1/applications/${applicationId}/interviews`, { method: "POST", body: JSON.stringify(input) });
+  return { ok: res.ok, status: res.status };
+}
+
+export async function submitScorecard(
+  interviewId: string,
+  input: { competencies: CompetencyScore[]; recommendation: string | null; notes: string | null },
+): Promise<Result> {
+  const res = await authed(`/v1/interviews/${interviewId}/scorecard`, { method: "POST", body: JSON.stringify(input) });
+  return { ok: res.ok, status: res.status };
+}
