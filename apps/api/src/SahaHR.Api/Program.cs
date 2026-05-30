@@ -12,11 +12,12 @@ using SahaHR.Modules.Identity;
 using SahaHR.Modules.People;
 using SahaHR.Modules.Recruitment;
 using SahaHR.Modules.Notifications;
+using SahaHR.Modules.Leave;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // --- modules (bounded contexts as in-process modules) ---
-IModule[] modules = [new IdentityModule(), new PeopleModule(), new RecruitmentModule(), new NotificationsModule()];
+IModule[] modules = [new IdentityModule(), new PeopleModule(), new RecruitmentModule(), new NotificationsModule(), new LeaveModule()];
 builder.Services.AddSingleton(new ModuleAssemblies(modules.Select(m => m.GetType().Assembly)));
 
 // --- tenancy + persistence ---
