@@ -1,0 +1,41 @@
+# Lean local-first infra (architecture §5.4: no Kafka/K8s/Temporal until a real seam needs them).
+# Postgres is the system of record; Redis is sessions/cache/rate-limit.
+# Run from repo root:  pnpm infra:up   (i.e. docker compose -f infra/docker-compose.yml up -d)
+name: sahahr
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: sahahr-postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-sahahr_owner}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-sahahr_dev_pw}
+      POSTGRES_DB: ${POSTGRES_DB:-sahahr}
+      # consumed by db/init/01_init.sh to create the RLS-bound runtime role
+      SAHAHR_APP_PASSWORD: ${SAHAHR_APP_PASSWORD:-sahahr_app_pw}
+    ports:
+      - "${POSTGRES_PORT:-5544}:5432"   # host 5544 to avoid clashing with a local Postgres on 5432
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ../db/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-sahahr_owner} -d ${POSTGRES_DB:-sahahr}"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+  redis:
+    image: redis:7-alpine
+    container_name: sahahr-redis
+    ports:
+      - "${REDIS_PORT:-6380}:6379"
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
+volumes:
+  pgdata:
+    name: sahahr-pgdata

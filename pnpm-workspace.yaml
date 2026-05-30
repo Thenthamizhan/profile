@@ -1,0 +1,11 @@
+# Only JS/TS packages are pnpm workspace members (dirs with a package.json).
+# The .NET domain core (apps/api) and Python AI services (services/ai) are ignored here —
+# they have no package.json and are built by their own toolchains.
+packages:
+  - "apps/*"
+  - "packages/*"
+
+# Build scripts pnpm should not auto-run (carried over from create-next-app for the web app).
+ignoredBuiltDependencies:
+  - sharp
+  - unrs-resolver

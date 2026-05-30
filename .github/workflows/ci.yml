@@ -1,0 +1,46 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  fitness:
+    name: Architectural fitness functions
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Run fitness functions (AOM §6)
+        run: node scripts/fitness/run-all.mjs
+
+  dotnet:
+    name: Build & test (.NET 9)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "9.0.x"
+      - name: Detect solution
+        id: detect
+        shell: bash
+        run: |
+          if ls apps/api/*.sln >/dev/null 2>&1; then
+            echo "has_sln=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_sln=false" >> "$GITHUB_OUTPUT"
+            echo "No solution yet — skipping .NET build/test."
+          fi
+      - if: steps.detect.outputs.has_sln == 'true'
+        run: dotnet restore apps/api
+      - if: steps.detect.outputs.has_sln == 'true'
+        run: dotnet build apps/api --no-restore -c Release
+      - if: steps.detect.outputs.has_sln == 'true'
+        run: dotnet test apps/api --no-build -c Release --verbosity normal
