@@ -8,6 +8,11 @@ on:
 permissions:
   contents: read
 
+# Cancel an in-progress run when a newer commit lands on the same branch/PR.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   # ── Architectural fitness functions (AOM §6) — pure static checks, fastest gate ──
   fitness:
@@ -69,6 +74,18 @@ jobs:
       - run: dotnet restore apps/api/SahaHR.sln
       # Prebuild the API so playwright's webServer (dotnet run) starts within its timeout.
       - run: dotnet build apps/api/SahaHR.sln -c Debug
+      # Cache the downloaded browser binaries (~110 MB) across runs, keyed on the Playwright
+      # version. On a hit we skip the download and only install OS deps (fast).
+      - name: Resolve Playwright version
+        id: pw
+        run: echo "version=$(node -e "console.log(require('./apps/web/node_modules/@playwright/test/package.json').version)")" >> "$GITHUB_OUTPUT"
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.pw.outputs.version }}
+      # Browser download is skipped automatically when the cache restored the binaries;
+      # --with-deps still installs the (uncached, fast) OS libraries.
       - name: Install Playwright browser
         run: pnpm -C apps/web exec playwright install --with-deps chromium
       # playwright.config.ts starts BOTH the API and the web app (with SAHAHR_API_URL set).
