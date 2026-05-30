@@ -30,6 +30,7 @@ public sealed class SahaHrApiFactory : WebApplicationFactory<Program>, IAsyncLif
             .WithResourceMapping(new FileInfo(Path.Combine(initDir, "05_seed_ats.sql")), "/docker-entrypoint-initdb.d/")
             .WithResourceMapping(new FileInfo(Path.Combine(initDir, "06_notifications.sql")), "/docker-entrypoint-initdb.d/")
             .WithResourceMapping(new FileInfo(Path.Combine(initDir, "07_leave.sql")), "/docker-entrypoint-initdb.d/")
+            .WithResourceMapping(new FileInfo(Path.Combine(initDir, "08_claims.sql")), "/docker-entrypoint-initdb.d/")
             .Build();
     }
 
