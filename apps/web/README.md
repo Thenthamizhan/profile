@@ -1,36 +1,43 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# SahaHR Admin (web)
 
-## Getting Started
+Next.js 16 (App Router, React 19, Tailwind v4) admin app. Acts as a **server-side BFF** in front of
+the ASP.NET Core API: the JWT lives in an httpOnly cookie, all API calls run server-side, so the
+browser never sees the token and there's no CORS.
 
-First, run the development server:
+## Run requirements (read before starting)
+
+The app talks to the API **from the Next.js server process** (server actions + RSC fetches), so it
+needs to know where the API is:
+
+| env var | purpose | default |
+|---------|---------|---------|
+| `SAHAHR_API_URL` | base URL of the ASP.NET Core API, used by `lib/api.ts` | `http://127.0.0.1:5080` |
+
+> **Gotcha (learned the hard way):** if the API runs on a non-default host/port and `SAHAHR_API_URL`
+> is **not** exported in the *web* process's environment, the login server action can't reach
+> `/v1/dev/token`, throws, and the page silently re-renders on `/login` with no visible error. Always
+> export `SAHAHR_API_URL` for the web process when the API isn't on `127.0.0.1:5080`. Copy
+> `.env.example` → `.env.local` to set it.
+
+## Local run (two terminals)
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+# 1) API (from repo root) — uses .env for its DB connection (Neon or local Docker)
+dotnet run --project apps/api/src/SahaHR.Api
+
+# 2) web — point it at the API, then start
+#    (PowerShell)  $env:SAHAHR_API_URL='http://127.0.0.1:5080'
+#    (bash)        export SAHAHR_API_URL=http://127.0.0.1:5080
+pnpm -C apps/web dev      # or: pnpm -C apps/web build && pnpm -C apps/web start
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open http://localhost:3000 → redirects to `/login`. The seeded dev tenant/user are pre-filled; click
+**Sign in** to mint a token (permissions resolved from the DB) and land on `/employees`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Routes
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- `/login` — dev token mint (server action). Replaced by Keycloak/OIDC in production.
+- `/employees` — list + create, search/status-filter, cursor pagination, clickable rows → detail/edit
+  drawer with soft-delete. All actions permission-gated (`employee.read/write/delete`).
+- `/recruitment` — open positions → `/recruitment/[jobId]` Kanban board with permission-gated
+  stage moves (`application.move`).
