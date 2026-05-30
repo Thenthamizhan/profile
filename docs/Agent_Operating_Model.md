@@ -637,6 +637,7 @@ Executable checks wired into CI that assert the architecture's invariants. **Own
 | FF-15 | **Statutory format fidelity** — CPF/IRAS/GIRO output files match the current official spec + rate-table version before submission is enabled | Schema/format validation vs official spec fixture | Statutory-format gate | **IMP-7** (format) / **STR-4** (rate version) |
 | FF-16 | **AI model drift** — production model accuracy/fairness stays within tolerance of last accepted eval | Rolling prod-sample eval vs baseline | Model-drift gate (operate) | **QA-5** |
 | FF-17 | **Onboarding reconciliation** — imported customer data matches source control totals (headcount, money) within tolerance | Reconciliation report on import dry-run | Migration-reconciliation gate | **OPS-4** |
+| FF-18 | **Schema/model mapping integrity** — every column the ORM maps resolves to a column that exists in the database (catches naming-convention mis-derivations, e.g. `resume_s3key` vs `resume_s3_key`) | Runtime: introspect EF model, diff vs `information_schema.columns` (integration test) | Schema gate / CI | **STR-3** (authors) / DSN-2 |
 
 ---
 

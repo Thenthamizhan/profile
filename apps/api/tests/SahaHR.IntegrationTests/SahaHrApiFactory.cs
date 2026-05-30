@@ -91,6 +91,21 @@ public sealed class SahaHrApiFactory : WebApplicationFactory<Program>, IAsyncLif
         return Convert.ToInt64(await cmd.ExecuteScalarAsync());
     }
 
+    /// All "table.column" pairs in the public schema — used by FF-18 to verify EF mappings
+    /// resolve to columns that actually exist.
+    public async Task<HashSet<string>> OwnerColumnsAsync()
+    {
+        var set = new HashSet<string>(StringComparer.Ordinal);
+        await using var conn = new NpgsqlConnection(_ownerConnection);
+        await conn.OpenAsync();
+        await using var cmd = conn.CreateCommand();
+        cmd.CommandText = "SELECT table_name || '.' || column_name FROM information_schema.columns WHERE table_schema = 'public'";
+        await using var reader = await cmd.ExecuteReaderAsync();
+        while (await reader.ReadAsync())
+            set.Add(reader.GetString(0));
+        return set;
+    }
+
     private static string LocateInitDir()
     {
         var dir = new DirectoryInfo(AppContext.BaseDirectory);
