@@ -6,7 +6,8 @@ namespace SahaHR.IntegrationTests;
 
 /// Recruitment/ATS spine: tenant isolation on jobs, RBAC on job.write, application stage-move
 /// emitting ApplicationMoved (outbox), and the Kanban board projection — all through full HTTP.
-public sealed class RecruitmentTests : IClassFixture<SahaHrApiFactory>
+[Collection(ApiCollection.Name)]
+public sealed class RecruitmentTests
 {
     private const string TenantA = "01900000-0000-7000-8000-0000000000a1";
     private const string SeededUser = "01900000-0000-7000-8000-0000000000d1";

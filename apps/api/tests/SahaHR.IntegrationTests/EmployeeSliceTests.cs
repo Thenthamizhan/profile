@@ -7,7 +7,8 @@ namespace SahaHR.IntegrationTests;
 /// Asserts the architectural spine through the full HTTP stack: auth, RBAC, tenant isolation,
 /// transactional outbox, and audit. Shares one API + Postgres container across the class; each
 /// test uses a unique employee number so methods never collide on the (company, employee_no) key.
-public sealed class EmployeeSliceTests : IClassFixture<SahaHrApiFactory>
+[Collection(ApiCollection.Name)]
+public sealed class EmployeeSliceTests
 {
     private const string TenantA = "01900000-0000-7000-8000-0000000000a1"; // seeded
     private const string SeededUser = "01900000-0000-7000-8000-0000000000d1"; // seeded, hr_admin
