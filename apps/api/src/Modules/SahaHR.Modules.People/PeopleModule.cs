@@ -18,8 +18,10 @@ public sealed class PeopleModule : IModule
     {
         var group = endpoints.MapGroup("/v1/employees").RequireAuthorization();
 
-        group.MapGet("/", async (EmployeeService svc, CancellationToken ct) =>
-                Results.Ok(await svc.ListAsync(ct)))
+        group.MapGet("/", async (
+                string? search, string? status, string? cursor, int? limit,
+                EmployeeService svc, CancellationToken ct) =>
+                Results.Ok(await svc.ListAsync(search, status, cursor, limit ?? 20, ct)))
             .RequirePermission("employee.read");
 
         group.MapGet("/{id:guid}", async (Guid id, EmployeeService svc, CancellationToken ct) =>

@@ -19,6 +19,7 @@ public sealed class EmployeeSliceTests : IClassFixture<SahaHrApiFactory>
 
     private sealed record DevToken(string accessToken);
     private sealed record EmployeeDto(string id, string employeeNo, string firstName, string lastName, string status);
+    private sealed record Paged(List<EmployeeDto> items, string? nextCursor);
 
     private static string NewEmployeeNo() => $"E-{Guid.NewGuid():N}"[..12];
 
@@ -99,7 +100,46 @@ public sealed class EmployeeSliceTests : IClassFixture<SahaHrApiFactory>
         Assert.Equal(HttpStatusCode.Created, create.StatusCode);
 
         Authorize(client, await TokenAsync(client, TenantB, permissions: ["employee.read"]));
-        var listB = await client.GetFromJsonAsync<List<EmployeeDto>>("/v1/employees");
-        Assert.Empty(listB!);
+        var listB = await client.GetFromJsonAsync<Paged>("/v1/employees");
+        Assert.Empty(listB!.items);
+    }
+
+    [Fact]
+    public async Task Search_filter_and_cursor_pagination_work()
+    {
+        var client = _factory.CreateClient();
+        Authorize(client, await TokenAsync(client, TenantA, permissions: ["employee.read", "employee.write"], userId: SeededUser));
+
+        // Seed a recognizable cohort with a shared, unique surname so search is deterministic.
+        var tag = $"Pag{Guid.NewGuid():N}"[..10];
+        for (var i = 0; i < 3; i++)
+        {
+            var resp = await client.PostAsJsonAsync("/v1/employees", new
+            {
+                companyId = CompanyA, employeeNo = NewEmployeeNo(),
+                firstName = $"P{i}", lastName = tag, workEmail = (string?)null,
+                hireDate = (string?)null,
+            });
+            Assert.Equal(HttpStatusCode.Created, resp.StatusCode);
+        }
+
+        // search narrows to exactly the cohort
+        var found = await client.GetFromJsonAsync<Paged>($"/v1/employees?search={tag}");
+        Assert.Equal(3, found!.items.Count);
+        Assert.All(found.items, e => Assert.Equal(tag, e.lastName));
+
+        // limit=2 returns a page + a cursor; following it returns the remainder, no overlap
+        var p1 = await client.GetFromJsonAsync<Paged>($"/v1/employees?search={tag}&limit=2");
+        Assert.Equal(2, p1!.items.Count);
+        Assert.NotNull(p1.nextCursor);
+
+        var p2 = await client.GetFromJsonAsync<Paged>($"/v1/employees?search={tag}&limit=2&cursor={Uri.EscapeDataString(p1.nextCursor!)}");
+        Assert.Single(p2!.items);
+        Assert.Null(p2.nextCursor);
+        Assert.DoesNotContain(p2.items[0].id, p1.items.Select(e => e.id));
+
+        // status filter excludes the active cohort
+        var terminated = await client.GetFromJsonAsync<Paged>($"/v1/employees?search={tag}&status=terminated");
+        Assert.Empty(terminated!.items);
     }
 }

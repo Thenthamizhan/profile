@@ -34,6 +34,15 @@ export type UpdateInput = {
 
 export type Result = { ok: boolean; status: number };
 
+export type Page<T> = { items: T[]; nextCursor: string | null };
+
+export type EmployeeQuery = {
+  search?: string;
+  status?: string;
+  cursor?: string;
+  limit?: number;
+};
+
 export async function mintDevToken(tenantId: string, userId: string): Promise<string> {
   const res = await fetch(`${API_URL}/v1/dev/token`, {
     method: "POST",
@@ -59,10 +68,17 @@ async function authed(path: string, init?: RequestInit): Promise<Response> {
   });
 }
 
-export async function listEmployees(): Promise<Employee[]> {
-  const res = await authed("/v1/employees");
+export async function listEmployees(query: EmployeeQuery = {}): Promise<Page<Employee>> {
+  const qs = new URLSearchParams();
+  if (query.search) qs.set("search", query.search);
+  if (query.status) qs.set("status", query.status);
+  if (query.cursor) qs.set("cursor", query.cursor);
+  if (query.limit) qs.set("limit", String(query.limit));
+  const suffix = qs.toString() ? `?${qs}` : "";
+
+  const res = await authed(`/v1/employees${suffix}`);
   if (!res.ok) throw new Error(`Failed to load employees (${res.status})`);
-  return (await res.json()) as Employee[];
+  return (await res.json()) as Page<Employee>;
 }
 
 export async function createEmployee(input: CreateInput): Promise<Result> {

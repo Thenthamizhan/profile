@@ -23,3 +23,6 @@ public sealed record EmployeeResponse(
     string? WorkEmail,
     string Status,
     DateOnly? HireDate);
+
+/// Cursor-paginated envelope (architecture §9.2). nextCursor is null when there are no more pages.
+public sealed record PagedResponse<T>(IReadOnlyList<T> Items, string? NextCursor);
