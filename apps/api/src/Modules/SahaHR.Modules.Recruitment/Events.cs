@@ -22,3 +22,36 @@ public sealed record CandidateHired : DomainEvent
     public required Guid JobId { get; init; }
     public override string EventType => "recruitment.CandidateHired";
 }
+
+/// Offer extended to a candidate (draft → sent).
+public sealed record OfferExtended : DomainEvent
+{
+    public required Guid OfferId { get; init; }
+    public required Guid ApplicationId { get; init; }
+    public override string EventType => "recruitment.OfferExtended";
+}
+
+/// Offer accepted — pairs with CandidateHired (the application is moved to hired on accept).
+public sealed record OfferAccepted : DomainEvent
+{
+    public required Guid OfferId { get; init; }
+    public required Guid ApplicationId { get; init; }
+    public override string EventType => "recruitment.OfferAccepted";
+}
+
+/// Offer declined by the candidate.
+public sealed record OfferDeclined : DomainEvent
+{
+    public required Guid OfferId { get; init; }
+    public required Guid ApplicationId { get; init; }
+    public override string EventType => "recruitment.OfferDeclined";
+}
+
+/// An interview scorecard was submitted; carries the weighted roll-up score for analytics.
+public sealed record ScorecardSubmitted : DomainEvent
+{
+    public required Guid InterviewId { get; init; }
+    public required Guid ApplicationId { get; init; }
+    public required double RollupScore { get; init; }
+    public override string EventType => "recruitment.ScorecardSubmitted";
+}

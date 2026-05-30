@@ -14,3 +14,18 @@ public sealed record ApplicationResponse(Guid Id, Guid JobId, Guid CandidateId, 
 public sealed record StageColumn(string Key, string Name, IReadOnlyList<KanbanCard> Cards);
 public sealed record KanbanCard(Guid ApplicationId, Guid CandidateId, string CandidateName, decimal? MatchScore, string Stage);
 public sealed record BoardResponse(Guid JobId, string JobTitle, IReadOnlyList<StageColumn> Columns);
+
+// ---- Offers (money is decimal) ----
+public sealed record CreateOfferRequest(decimal? Salary, string? Currency);
+public sealed record RespondOfferRequest(string Decision);   // accepted|declined
+public sealed record OfferResponse(
+    Guid Id, Guid ApplicationId, decimal? Salary, string? Currency, string Status,
+    DateTimeOffset? SentAt, DateTimeOffset? RespondedAt);
+
+// ---- Scorecards ----
+public sealed record ScheduleInterviewRequest(DateTimeOffset? ScheduledAt, Guid[]? Interviewers);
+public sealed record CompetencyScore(string Name, double Weight, int Score);   // Score 1..5
+public sealed record SubmitScorecardRequest(IReadOnlyList<CompetencyScore> Competencies, string? Recommendation, string? Notes);
+public sealed record InterviewResponse(
+    Guid Id, Guid ApplicationId, DateTimeOffset? ScheduledAt, Guid[] Interviewers,
+    double? RollupScore, string? Recommendation);
