@@ -20,7 +20,8 @@ builder.Services.AddSingleton(new ModuleAssemblies(modules.Select(m => m.GetType
 
 // --- tenancy + persistence ---
 builder.Services.AddScoped<ITenantContext, TenantContext>();
-builder.Services.AddScoped<TenantConnectionInterceptor>();
+builder.Services.AddScoped<TenantConnectionInterceptor>();     // session GUC — direct endpoint
+builder.Services.AddScoped<TenantTransactionInterceptor>();    // transaction-local GUC — pooler-safe
 
 var appConnection = builder.Configuration.GetConnectionString("Default")
     ?? throw new InvalidOperationException("ConnectionStrings:Default is required.");
@@ -28,7 +29,9 @@ builder.Services.AddDbContext<SahaHrDbContext>((sp, options) =>
 {
     options.UseNpgsql(appConnection);
     options.UseSnakeCaseNamingConvention();
-    options.AddInterceptors(sp.GetRequiredService<TenantConnectionInterceptor>());
+    options.AddInterceptors(
+        sp.GetRequiredService<TenantConnectionInterceptor>(),
+        sp.GetRequiredService<TenantTransactionInterceptor>());
 });
 
 // owner-role data source for RLS-exempt background work (outbox relay, dev-token lookup)
