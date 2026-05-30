@@ -41,7 +41,13 @@ export function OffersPanel({
 
       <ul className="mt-3 flex flex-col gap-2">
         {offers.map((o) => (
-          <li key={o.id} className="flex items-center justify-between rounded-lg border border-gray-100 px-3 py-2 text-sm">
+          <li
+            key={o.id}
+            data-testid="offer-row"
+            data-offer-id={o.id}
+            data-offer-status={o.status}
+            className="flex items-center justify-between rounded-lg border border-gray-100 px-3 py-2 text-sm"
+          >
             <span className="text-gray-800">
               {o.salary != null ? `${o.currency ?? ""} ${o.salary.toLocaleString()}`.trim() : "—"}
             </span>
@@ -121,7 +127,13 @@ export function InterviewsPanel({
 
       <ul className="mt-3 flex flex-col gap-3">
         {interviews.map((iv) => (
-          <li key={iv.id} className="rounded-lg border border-gray-100 p-3">
+          <li
+            key={iv.id}
+            data-testid="interview-row"
+            data-interview-id={iv.id}
+            data-has-scorecard={iv.rollupScore != null ? "true" : "false"}
+            className="rounded-lg border border-gray-100 p-3"
+          >
             <div className="flex items-center justify-between text-sm">
               <span className="text-gray-700">
                 {iv.scheduledAt ? new Date(iv.scheduledAt).toLocaleString() : "Unscheduled"}

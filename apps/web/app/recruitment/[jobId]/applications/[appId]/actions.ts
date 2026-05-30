@@ -59,8 +59,16 @@ export async function respondOfferAction(_prev: ActionState, formData: FormData)
 
 export async function scheduleInterviewAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const applicationId = String(formData.get("applicationId") ?? "").trim();
-  const scheduledAt = String(formData.get("scheduledAt") ?? "").trim() || null;
+  const raw = String(formData.get("scheduledAt") ?? "").trim();
   if (!applicationId) return { error: "Missing application." };
+  // <input type="datetime-local"> yields "2026-06-15T10:00" (no seconds, no timezone), which the
+  // API's DateTimeOffset binder rejects. Normalize to a full ISO-8601 instant before sending.
+  let scheduledAt: string | null = null;
+  if (raw) {
+    const d = new Date(raw);
+    if (Number.isNaN(d.getTime())) return { error: "Invalid date/time." };
+    scheduledAt = d.toISOString();
+  }
   const res = await scheduleInterview(applicationId, { scheduledAt, interviewers: [] });
   if (!res.ok) return { error: fail(res.status, "schedule the interview") };
   revalidate();
