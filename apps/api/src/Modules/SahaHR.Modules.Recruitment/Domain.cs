@@ -77,6 +77,8 @@ public sealed class CandidateConfiguration : IEntityTypeConfiguration<Candidate>
     {
         b.ToTable("candidate");
         b.HasKey(x => x.Id);
+        // snake_case convention yields "resume_s3key"; the column is "resume_s3_key". Map explicitly.
+        b.Property(x => x.ResumeS3Key).HasColumnName("resume_s3_key");
     }
 }
 
