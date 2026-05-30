@@ -26,6 +26,8 @@ public sealed class SahaHrApiFactory : WebApplicationFactory<Program>, IAsyncLif
             .WithResourceMapping(new FileInfo(Path.Combine(initDir, "01_init.sh")), "/docker-entrypoint-initdb.d/")
             .WithResourceMapping(new FileInfo(Path.Combine(initDir, "02_core_schema.sql")), "/docker-entrypoint-initdb.d/")
             .WithResourceMapping(new FileInfo(Path.Combine(initDir, "03_seed_dev.sql")), "/docker-entrypoint-initdb.d/")
+            .WithResourceMapping(new FileInfo(Path.Combine(initDir, "04_ats_schema.sql")), "/docker-entrypoint-initdb.d/")
+            .WithResourceMapping(new FileInfo(Path.Combine(initDir, "05_seed_ats.sql")), "/docker-entrypoint-initdb.d/")
             .Build();
     }
 
