@@ -198,3 +198,40 @@ export async function submitScorecard(
   const res = await authed(`/v1/interviews/${interviewId}/scorecard`, { method: "POST", body: JSON.stringify(input) });
   return { ok: res.ok, status: res.status };
 }
+
+// ---- Leave & Claims ----
+
+export type LeaveRequestItem = {
+  id: string;
+  employeeId: string;
+  leaveType: string;
+  startDate: string;
+  endDate: string;
+  days: number;
+  status: string; // pending|approved|rejected|cancelled
+  reason: string | null;
+};
+
+export async function listLeave(status?: string): Promise<LeaveRequestItem[]> {
+  const suffix = status ? `?status=${encodeURIComponent(status)}` : "";
+  const res = await authed(`/v1/leave-requests${suffix}`);
+  if (!res.ok) throw new Error(`Failed to load leave requests (${res.status})`);
+  return (await res.json()) as LeaveRequestItem[];
+}
+
+export async function submitLeave(input: {
+  employeeId: string;
+  leaveType: string;
+  startDate: string;
+  endDate: string;
+  days: number;
+  reason: string | null;
+}): Promise<Result> {
+  const res = await authed("/v1/leave-requests", { method: "POST", body: JSON.stringify(input) });
+  return { ok: res.ok, status: res.status };
+}
+
+export async function decideLeave(id: string, decision: "approve" | "reject"): Promise<Result> {
+  const res = await authed(`/v1/leave-requests/${id}/${decision}`, { method: "POST" });
+  return { ok: res.ok, status: res.status };
+}

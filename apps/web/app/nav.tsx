@@ -8,13 +8,15 @@ export function TopNav({
   permCount,
   canSeePeople,
   canSeeRecruitment,
+  canSeeLeave = false,
   active,
 }: {
   tenantId?: string;
   permCount: number;
   canSeePeople: boolean;
   canSeeRecruitment: boolean;
-  active: "people" | "recruitment";
+  canSeeLeave?: boolean;
+  active: "people" | "recruitment" | "leave";
 }) {
   const link = (href: string, label: string, isActive: boolean) => (
     <Link
@@ -34,6 +36,7 @@ export function TopNav({
         <nav className="flex gap-1">
           {canSeePeople && link("/employees", "Employees", active === "people")}
           {canSeeRecruitment && link("/recruitment", "Recruitment", active === "recruitment")}
+          {canSeeLeave && link("/leave", "Leave", active === "leave")}
         </nav>
       </div>
       <div className="flex items-center gap-4">
