@@ -5,7 +5,7 @@ import { listEmployees, type Employee } from "@/lib/api";
 import { CreateForm } from "./create-form";
 import { EmployeeTable } from "./employee-table";
 import { FilterBar } from "./filter-bar";
-import { logout } from "./actions";
+import { TopNav } from "../nav";
 
 export const dynamic = "force-dynamic";
 
@@ -48,21 +48,15 @@ export default async function EmployeesPage({
   const onFirstPage = !sp.cursor;
 
   return (
-    <main className="mx-auto max-w-5xl px-6 py-10">
-      <header className="flex items-start justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold text-gray-900">Employees</h1>
-          <p className="mt-1 text-sm text-gray-500">
-            Tenant <span className="font-mono text-xs">{claims.tenant_id}</span> ·{" "}
-            {permissions(token).length} permission(s)
-          </p>
-        </div>
-        <form action={logout}>
-          <button className="rounded-md border border-gray-300 px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50">
-            Sign out
-          </button>
-        </form>
-      </header>
+    <main className="mx-auto max-w-5xl px-6 py-8">
+      <TopNav
+        tenantId={claims.tenant_id}
+        permCount={permissions(token).length}
+        canSeePeople
+        canSeeRecruitment={hasPerm(token, "job.read")}
+        active="people"
+      />
+      <h1 className="mt-6 text-2xl font-semibold text-gray-900">Employees</h1>
 
       {error && (
         <div className="mt-6 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">

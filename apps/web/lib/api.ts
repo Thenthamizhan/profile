@@ -102,3 +102,28 @@ export async function deleteEmployee(id: string): Promise<Result> {
   const res = await authed(`/v1/employees/${id}`, { method: "DELETE" });
   return { ok: res.ok, status: res.status };
 }
+
+// ---- Recruitment / ATS ----
+
+export type Job = { id: string; title: string; status: string; location: string | null; employmentType: string | null; pipelineId: string };
+export type KanbanCard = { applicationId: string; candidateId: string; candidateName: string; matchScore: number | null; stage: string };
+export type StageColumn = { key: string; name: string; cards: KanbanCard[] };
+export type Board = { jobId: string; jobTitle: string; columns: StageColumn[] };
+
+export async function listJobs(): Promise<Job[]> {
+  const res = await authed("/v1/jobs");
+  if (!res.ok) throw new Error(`Failed to load jobs (${res.status})`);
+  return (await res.json()) as Job[];
+}
+
+export async function getBoard(jobId: string): Promise<Board | null> {
+  const res = await authed(`/v1/jobs/${jobId}/board`);
+  if (res.status === 404) return null;
+  if (!res.ok) throw new Error(`Failed to load board (${res.status})`);
+  return (await res.json()) as Board;
+}
+
+export async function moveApplication(id: string, toStage: string): Promise<Result> {
+  const res = await authed(`/v1/applications/${id}/move`, { method: "POST", body: JSON.stringify({ toStage }) });
+  return { ok: res.ok, status: res.status };
+}
