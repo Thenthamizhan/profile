@@ -18,7 +18,8 @@
     "ff": "node scripts/fitness/run-all.mjs",
     "infra:up": "docker compose -f infra/docker-compose.yml up -d",
     "infra:down": "docker compose -f infra/docker-compose.yml down",
-    "infra:logs": "docker compose -f infra/docker-compose.yml logs -f"
+    "infra:logs": "docker compose -f infra/docker-compose.yml logs -f",
+    "migrate": "node scripts/migrate/run.mjs"
   },
   "devDependencies": {
     "prettier": "^3.4.2",
