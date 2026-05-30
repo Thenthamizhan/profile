@@ -95,7 +95,7 @@ public sealed class RecruitmentService
 
         _events.Enqueue(new ApplicationMoved { ApplicationId = app.Id, JobId = app.JobId, FromStage = from, ToStage = toStage });
         if (toStage == "hired")
-            _events.Enqueue(new CandidateHired { ApplicationId = app.Id, CandidateId = app.CandidateId, JobId = app.JobId });
+            _events.Enqueue(await HireEvents.BuildCandidateHiredAsync(_db, app, ct));
         _audit.Record("application.move", "application", app.Id, before: new { stage = from }, after: new { stage = toStage });
 
         await _db.SaveChangesAsync(ct);

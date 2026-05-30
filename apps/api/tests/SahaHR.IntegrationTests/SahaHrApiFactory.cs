@@ -91,6 +91,32 @@ public sealed class SahaHrApiFactory : WebApplicationFactory<Program>, IAsyncLif
         return Convert.ToInt64(await cmd.ExecuteScalarAsync());
     }
 
+    /// Execute arbitrary SQL as the owner (RLS-exempt). Used by tests to inject fixtures or
+    /// simulate a duplicate outbox delivery.
+    public async Task OwnerExecAsync(string sql)
+    {
+        await using var conn = new NpgsqlConnection(_ownerConnection);
+        await conn.OpenAsync();
+        await using var cmd = conn.CreateCommand();
+        cmd.CommandText = sql;
+        await cmd.ExecuteNonQueryAsync();
+    }
+
+    /// Polls OwnerScalarAsync(sql) until it reaches >= target or the timeout elapses; returns the
+    /// last observed value. For asserting on the background outbox dispatcher's async effects.
+    public async Task<long> PollScalarAsync(string sql, long target, int timeoutMs = 20_000)
+    {
+        var deadline = DateTime.UtcNow.AddMilliseconds(timeoutMs);
+        long last = 0;
+        while (DateTime.UtcNow < deadline)
+        {
+            last = await OwnerScalarAsync(sql);
+            if (last >= target) return last;
+            await Task.Delay(500);
+        }
+        return last;
+    }
+
     /// All "table.column" pairs in the public schema — used by FF-18 to verify EF mappings
     /// resolve to columns that actually exist.
     public async Task<HashSet<string>> OwnerColumnsAsync()

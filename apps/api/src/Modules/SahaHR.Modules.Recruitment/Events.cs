@@ -13,13 +13,18 @@ public sealed record ApplicationMoved : DomainEvent
     public override string EventType => "recruitment.ApplicationMoved";
 }
 
-/// Emitted when an application reaches the terminal "hired" stage — the seam where People would
-/// create the employee record (§5.2 "a hire becomes an employee").
+/// Emitted when an application reaches the terminal "hired" stage — the seam where People creates
+/// the employee record (§5.2 "a hire becomes an employee"). Carries enough denormalized context
+/// (company + candidate identity) for the People consumer to act on the payload alone, without
+/// calling back into Recruitment.
 public sealed record CandidateHired : DomainEvent
 {
     public required Guid ApplicationId { get; init; }
     public required Guid CandidateId { get; init; }
     public required Guid JobId { get; init; }
+    public Guid CompanyId { get; init; }
+    public string? CandidateName { get; init; }
+    public string? CandidateEmail { get; init; }
     public override string EventType => "recruitment.CandidateHired";
 }
 

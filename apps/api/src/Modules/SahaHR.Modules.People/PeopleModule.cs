@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using SahaHR.Common.Authorization;
+using SahaHR.Common.Eventing;
 using SahaHR.Common.Modules;
 using SahaHR.Modules.People.Contracts;
 
@@ -12,7 +13,11 @@ namespace SahaHR.Modules.People;
 public sealed class PeopleModule : IModule
 {
     public void Register(IServiceCollection services, IConfiguration configuration)
-        => services.AddScoped<EmployeeService>();
+    {
+        services.AddScoped<EmployeeService>();
+        // Consume recruitment.CandidateHired -> auto-provision the employee (§5.2 seam).
+        services.AddScoped<IDomainEventHandler, CandidateHiredHandler>();
+    }
 
     public void MapEndpoints(IEndpointRouteBuilder endpoints)
     {

@@ -53,6 +53,59 @@ public sealed class EmployeeService
         return ToResponse(employee);
     }
 
+    /// Idempotently provision an employee from a hired application (the §5.2 ATS→People seam).
+    /// CandidateHired is delivered at-least-once and fires from both the Kanban "hired" move and
+    /// offer-accept, so this must be safe to call repeatedly: the employee_no is derived
+    /// deterministically from the application id, and we no-op if it already exists. Tenant comes
+    /// from the established context (set by the outbox dispatcher from the message's tenant_id).
+    public async Task<Guid?> CreateFromHiredCandidateAsync(
+        Guid applicationId, Guid companyId, string? candidateName, string? candidateEmail, CancellationToken ct)
+    {
+        var tenantId = _tenant.TenantId
+            ?? throw new InvalidOperationException("Cannot provision a hire without a tenant context.");
+
+        // Deterministic, collision-proof per application — the idempotency key.
+        var employeeNo = $"H-{applicationId.ToString("N")[..10].ToUpperInvariant()}";
+
+        var existing = await _db.Set<Employee>()
+            .FirstOrDefaultAsync(e => e.CompanyId == companyId && e.EmployeeNo == employeeNo, ct);
+        if (existing is not null)
+            return null; // already provisioned — idempotent no-op
+
+        var (first, last) = SplitName(candidateName);
+        var employee = new Employee
+        {
+            TenantId = tenantId,
+            CompanyId = companyId,
+            EmployeeNo = employeeNo,
+            FirstName = first,
+            LastName = last,
+            WorkEmail = candidateEmail,
+            HireDate = DateOnly.FromDateTime(DateTime.UtcNow),
+            Status = "active",
+        };
+
+        _db.Set<Employee>().Add(employee);
+        _events.Enqueue(new EmployeeHired
+        {
+            EmployeeId = employee.Id,
+            CompanyId = employee.CompanyId,
+            EmployeeNo = employee.EmployeeNo,
+        });
+        _audit.Record("employee.create", "employee", employee.Id,
+            after: new { source = "ats.candidate_hired", applicationId, employee.EmployeeNo });
+
+        await _db.SaveChangesAsync(ct);
+        return employee.Id;
+    }
+
+    private static (string First, string Last) SplitName(string? fullName)
+    {
+        if (string.IsNullOrWhiteSpace(fullName)) return ("New", "Hire");
+        var parts = fullName.Trim().Split(' ', 2, StringSplitOptions.RemoveEmptyEntries);
+        return parts.Length == 2 ? (parts[0], parts[1]) : (parts[0], "—");
+    }
+
     public async Task<EmployeeResponse?> GetAsync(Guid id, CancellationToken ct)
     {
         var employee = await _db.Set<Employee>().FirstOrDefaultAsync(e => e.Id == id && e.DeletedAt == null, ct);

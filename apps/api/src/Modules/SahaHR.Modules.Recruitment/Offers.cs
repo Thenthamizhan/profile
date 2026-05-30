@@ -120,7 +120,7 @@ public sealed class OfferService
                 app.CurrentStage = "hired";
                 app.Status = "hired";
                 _events.Enqueue(new ApplicationMoved { ApplicationId = app.Id, JobId = app.JobId, FromStage = from, ToStage = "hired" });
-                _events.Enqueue(new CandidateHired { ApplicationId = app.Id, CandidateId = app.CandidateId, JobId = app.JobId });
+                _events.Enqueue(await HireEvents.BuildCandidateHiredAsync(_db, app, ct));
             }
             _events.Enqueue(new OfferAccepted { OfferId = offer.Id, ApplicationId = offer.ApplicationId });
         }
