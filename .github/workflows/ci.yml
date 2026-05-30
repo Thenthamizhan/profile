@@ -9,38 +9,74 @@ permissions:
   contents: read
 
 jobs:
+  # ── Architectural fitness functions (AOM §6) — pure static checks, fastest gate ──
   fitness:
-    name: Architectural fitness functions
+    name: Fitness functions
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - name: Run fitness functions (AOM §6)
-        run: node scripts/fitness/run-all.mjs
+      - run: node scripts/fitness/run-all.mjs
 
+  # ── .NET build + integration tests (Testcontainers spins its own Postgres; needs Docker) ──
   dotnet:
-    name: Build & test (.NET 9)
+    name: Build & integration tests (.NET 9)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: "9.0.x"
-      - name: Detect solution
-        id: detect
-        shell: bash
+      - run: dotnet restore apps/api/SahaHR.sln
+      - run: dotnet build apps/api/SahaHR.sln --no-restore -c Release
+      # The integration suite uses Testcontainers.PostgreSql — Docker is preinstalled on
+      # ubuntu-latest, so each run gets a throwaway Postgres seeded from db/init.
+      - run: dotnet test apps/api/SahaHR.sln --no-build -c Release --logger "console;verbosity=normal"
+
+  # ── Playwright E2E: real browser through the web UI against the live API + Postgres ──
+  e2e:
+    name: E2E (Playwright)
+    runs-on: ubuntu-latest
+    env:
+      CI: "true"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "9.0.x"
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      # Postgres (+Redis) on host port 5544, seeded from db/init — what playwright.config.ts targets.
+      - name: Start local infra
+        run: docker compose -f infra/docker-compose.yml up -d
+      - name: Wait for Postgres
         run: |
-          if ls apps/api/*.sln >/dev/null 2>&1; then
-            echo "has_sln=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "has_sln=false" >> "$GITHUB_OUTPUT"
-            echo "No solution yet — skipping .NET build/test."
-          fi
-      - if: steps.detect.outputs.has_sln == 'true'
-        run: dotnet restore apps/api
-      - if: steps.detect.outputs.has_sln == 'true'
-        run: dotnet build apps/api --no-restore -c Release
-      - if: steps.detect.outputs.has_sln == 'true'
-        run: dotnet test apps/api --no-build -c Release --verbosity normal
+          for i in $(seq 1 60); do
+            if docker exec sahahr-postgres pg_isready -U sahahr_owner -d sahahr >/dev/null 2>&1; then
+              echo "postgres ready"; exit 0
+            fi
+            sleep 1
+          done
+          echo "postgres did not become ready" >&2; exit 1
+      - run: pnpm install --frozen-lockfile
+      - run: dotnet restore apps/api/SahaHR.sln
+      # Prebuild the API so playwright's webServer (dotnet run) starts within its timeout.
+      - run: dotnet build apps/api/SahaHR.sln -c Debug
+      - name: Install Playwright browser
+        run: pnpm -C apps/web exec playwright install --with-deps chromium
+      # playwright.config.ts starts BOTH the API and the web app (with SAHAHR_API_URL set).
+      - name: Run E2E
+        run: pnpm -C apps/web exec playwright test --project=chromium
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: playwright-report
+          path: apps/web/playwright-report/
+          retention-days: 7
