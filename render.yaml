@@ -23,7 +23,7 @@ services:
   - type: web
     name: sahahr-api
     runtime: docker
-    repo: https://github.com/mvshashni/sahahr
+    repo: https://github.com/Thenthamizhan/profile
     branch: main
     autoDeploy: true            # deploy on push to main (CI gates the branch first)
     numInstances: 1             # IMPORTANT: the OutboxDispatcher + NotificationDeliveryWorker are
