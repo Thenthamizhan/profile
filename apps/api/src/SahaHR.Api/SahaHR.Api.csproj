@@ -19,6 +19,7 @@
     <ProjectReference Include="..\Modules\SahaHR.Modules.Recruitment\SahaHR.Modules.Recruitment.csproj" />
     <ProjectReference Include="..\Modules\SahaHR.Modules.Notifications\SahaHR.Modules.Notifications.csproj" />
     <ProjectReference Include="..\Modules\SahaHR.Modules.Leave\SahaHR.Modules.Leave.csproj" />
+    <ProjectReference Include="..\Modules\SahaHR.Modules.Time\SahaHR.Modules.Time.csproj" />
   </ItemGroup>
 
 </Project>

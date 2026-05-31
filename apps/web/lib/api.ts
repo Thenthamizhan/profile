@@ -281,3 +281,36 @@ export async function decideClaim(id: string, decision: "approve" | "reject" | "
   const res = await authed(`/v1/claims/${id}/${decision}`, { method: "POST" });
   return { ok: res.ok, status: res.status };
 }
+
+// ---- Time & Attendance ----
+
+export type AttendanceEntry = {
+  id: string;
+  employeeId: string;
+  workDate: string;
+  clockIn: string;
+  clockOut: string | null;
+  hours: number | null;
+  status: string; // open|completed
+  notes: string | null;
+};
+
+export async function listAttendance(employeeId?: string, status?: string): Promise<AttendanceEntry[]> {
+  const qs = new URLSearchParams();
+  if (employeeId) qs.set("employeeId", employeeId);
+  if (status) qs.set("status", status);
+  const suffix = qs.toString() ? `?${qs}` : "";
+  const res = await authed(`/v1/attendance${suffix}`);
+  if (!res.ok) throw new Error(`Failed to load attendance (${res.status})`);
+  return (await res.json()) as AttendanceEntry[];
+}
+
+export async function clockIn(employeeId: string, notes: string | null): Promise<Result> {
+  const res = await authed("/v1/attendance/clock-in", { method: "POST", body: JSON.stringify({ employeeId, notes }) });
+  return { ok: res.ok, status: res.status };
+}
+
+export async function clockOut(employeeId: string, notes: string | null): Promise<Result> {
+  const res = await authed("/v1/attendance/clock-out", { method: "POST", body: JSON.stringify({ employeeId, notes }) });
+  return { ok: res.ok, status: res.status };
+}

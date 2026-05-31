@@ -17,6 +17,7 @@ using SahaHR.Modules.People;
 using SahaHR.Modules.Recruitment;
 using SahaHR.Modules.Notifications;
 using SahaHR.Modules.Leave;
+using SahaHR.Modules.Time;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -35,7 +36,7 @@ if (!builder.Environment.IsDevelopment())
 }
 
 // --- modules (bounded contexts as in-process modules) ---
-IModule[] modules = [new IdentityModule(), new PeopleModule(), new RecruitmentModule(), new NotificationsModule(), new LeaveModule()];
+IModule[] modules = [new IdentityModule(), new PeopleModule(), new RecruitmentModule(), new NotificationsModule(), new LeaveModule(), new TimeModule()];
 builder.Services.AddSingleton(new ModuleAssemblies(modules.Select(m => m.GetType().Assembly)));
 
 // --- tenancy + persistence ---

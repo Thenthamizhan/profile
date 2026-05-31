@@ -21,6 +21,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   if (hasPerm(token, "job.read")) items.push({ href: "/recruitment", label: "Recruitment", icon: "recruitment" });
   if (hasPerm(token, "leave.read")) items.push({ href: "/leave", label: "Leave", icon: "leave" });
   if (hasPerm(token, "claim.read")) items.push({ href: "/claims", label: "Claims", icon: "claims" });
+  if (hasPerm(token, "attendance.read")) items.push({ href: "/time", label: "Time", icon: "time" });
 
   return (
     <div className="flex min-h-screen bg-background">

@@ -30,7 +30,9 @@ INSERT INTO permission (id, key) VALUES
   (gen_random_uuid(), 'claim.read'),
   (gen_random_uuid(), 'claim.request'),
   (gen_random_uuid(), 'claim.approve'),
-  (gen_random_uuid(), 'claim.reimburse')
+  (gen_random_uuid(), 'claim.reimburse'),
+  (gen_random_uuid(), 'attendance.read'),
+  (gen_random_uuid(), 'attendance.clock')
 ON CONFLICT (key) DO NOTHING;
 
 INSERT INTO role (id, tenant_id, key, name, is_system) VALUES
@@ -47,7 +49,8 @@ WHERE p.key IN (
   'application.read', 'application.move',
   'offer.read', 'offer.write', 'interview.read', 'interview.write',
   'leave.read', 'leave.request', 'leave.approve',
-  'claim.read', 'claim.request', 'claim.approve', 'claim.reimburse'
+  'claim.read', 'claim.request', 'claim.approve', 'claim.reimburse',
+  'attendance.read', 'attendance.clock'
 )
 ON CONFLICT (role_id, permission_id) DO NOTHING;
 

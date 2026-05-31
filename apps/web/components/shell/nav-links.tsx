@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Users, Briefcase, CalendarDays, Receipt, type LucideIcon } from "lucide-react";
+import { Users, Briefcase, CalendarDays, Receipt, Clock, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/cn";
 
 export type NavItem = { href: string; label: string; icon: keyof typeof ICONS };
@@ -12,6 +12,7 @@ const ICONS = {
   recruitment: Briefcase,
   leave: CalendarDays,
   claims: Receipt,
+  time: Clock,
 } satisfies Record<string, LucideIcon>;
 
 /// Permission-filtered nav, shared by the desktop sidebar (vertical) and the mobile strip

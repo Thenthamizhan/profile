@@ -18,12 +18,13 @@ the **operational cheat-sheet** — the things that cost real time to (re)discov
 ```
 apps/api/      ASP.NET Core 9 modular monolith (SahaHR.sln). Bounded contexts = modules:
                Common (tenancy, outbox, RBAC, audit, DbContext, Security cipher, Observability),
-               Identity, People, Recruitment, Notifications, Leave (+Claims).
+               Identity, People, Recruitment, Notifications, Leave (+Claims), Time (attendance).
 apps/web/      Next.js 16 + React 19 admin app (server-side BFF). UI design system in
                components/ui (calm-enterprise, §14); authenticated shell = app/(app) route group.
                e2e/ = Playwright.
 db/init/       Canonical SQL: 01 roles, 02 core schema+RLS, 03 seed, 04 ATS, 05 ATS seed,
-               06 notifications, 07 leave, 08 claims. ⚠ Runs ONLY on first container init (DEBT-002).
+               06 notifications, 07 leave, 08 claims, 09 attendance. ⚠ Runs ONLY on first container
+               init (DEBT-002); new init files must also be mapped in SahaHrApiFactory + migrated to Neon.
 db/neon/       Neon (cloud) bootstrap + one-off grant scripts.
 scripts/fitness/  Executable architectural fitness functions (FF-1..18). `pnpm ff`.
 infra/         docker-compose (local Postgres+Redis). Terraform/Helm later.
