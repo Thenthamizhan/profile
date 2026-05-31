@@ -1,6 +1,7 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
@@ -8,9 +9,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.IdentityModel.Tokens;
-using Npgsql;
 using SahaHR.Common.Modules;
-using SahaHR.Common.Persistence;
 
 namespace SahaHR.Modules.Identity;
 
@@ -19,17 +18,25 @@ public sealed record DevTokenResponse(string AccessToken);
 
 public sealed class IdentityModule : IModule
 {
-    public void Register(IServiceCollection services, IConfiguration configuration) { }
+    public void Register(IServiceCollection services, IConfiguration configuration)
+    {
+        // Single source of truth for permission resolution, shared by the dev mint and the OIDC
+        // claims transformation. The transformation runs for every authenticated request but is a
+        // no-op for tokens that already carry `perm` (the dev mint), so dev/test/E2E are unaffected.
+        services.AddScoped<IPermissionResolver, PermissionResolver>();
+        services.AddScoped<IClaimsTransformation, PermissionClaimsTransformation>();
+    }
 
     public void MapEndpoints(IEndpointRouteBuilder endpoints)
     {
-        // DEV ONLY: mint a JWT so the API is exercisable without a real IdP.
-        // Production replaces this with Keycloak/OIDC; only the issuer/JWKS change (§7).
+        // DEV ONLY: mint a JWT so the API is exercisable without a real IdP. Production replaces this
+        // with Keycloak/OIDC; the IdP token carries identity only and perms are resolved from our
+        // RBAC tables by PermissionClaimsTransformation. See docs/AUTH.md.
         endpoints.MapPost("/v1/dev/token", async (
             DevTokenRequest request,
             IHostEnvironment env,
             IConfiguration config,
-            OwnerDataSource owner,
+            IPermissionResolver resolver,
             CancellationToken ct) =>
         {
             if (!env.IsDevelopment())
@@ -38,32 +45,10 @@ public sealed class IdentityModule : IModule
             var userId = request.UserId ?? Guid.NewGuid();
             var permissions = request.Permissions is { Length: > 0 }
                 ? request.Permissions
-                : (await ResolvePermissionsAsync(owner, request.TenantId, userId, ct)).ToArray();
+                : (await resolver.ResolveAsync(request.TenantId, userId, ct)).ToArray();
 
             return Results.Ok(new DevTokenResponse(MintToken(config, request.TenantId, userId, permissions)));
         });
-    }
-
-    private static async Task<List<string>> ResolvePermissionsAsync(OwnerDataSource owner, Guid tenantId, Guid userId, CancellationToken ct)
-    {
-        const string sql = """
-            SELECT p.key
-            FROM user_role ur
-            JOIN role_permission rp ON rp.role_id = ur.role_id
-            JOIN permission p ON p.id = rp.permission_id
-            WHERE ur.tenant_id = @tenant AND ur.user_id = @user
-            """;
-        await using var conn = await owner.Source.OpenConnectionAsync(ct);
-        await using var cmd = conn.CreateCommand();
-        cmd.CommandText = sql;
-        cmd.Parameters.Add(new NpgsqlParameter("tenant", tenantId));
-        cmd.Parameters.Add(new NpgsqlParameter("user", userId));
-
-        var result = new List<string>();
-        await using var reader = await cmd.ExecuteReaderAsync(ct);
-        while (await reader.ReadAsync(ct))
-            result.Add(reader.GetString(0));
-        return result;
     }
 
     private static string MintToken(IConfiguration config, Guid tenantId, Guid userId, string[] permissions)

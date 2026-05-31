@@ -53,7 +53,13 @@ builder.Services.AddScoped<IAuditWriter, AuditWriter>();
 builder.Services.AddHostedService<OutboxDispatcher>();
 
 // --- authentication / authorization ---
+// Two modes, chosen by config:
+//   * Jwt:Authority set   -> production OIDC. Access tokens are validated against the IdP's JWKS
+//     (asymmetric). Fine-grained perms are resolved from our RBAC tables by the Identity module's
+//     PermissionClaimsTransformation (the IdP token carries identity only). See docs/AUTH.md.
+//   * Jwt:Authority unset -> dev/test. HS256 tokens minted by /v1/dev/token with a shared key.
 var jwt = builder.Configuration.GetSection("Jwt");
+var authority = jwt["Authority"];
 builder.Services
     .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
@@ -61,18 +67,37 @@ builder.Services
         options.MapInboundClaims = false;       // keep "sub", "tenant_id", "perm" verbatim
         // HTTPS metadata is only relaxed outside production (dev/test over http).
         options.RequireHttpsMetadata = !builder.Environment.IsDevelopment();
-        options.TokenValidationParameters = new TokenValidationParameters
+
+        if (!string.IsNullOrWhiteSpace(authority))
         {
-            ValidateIssuer = true,
-            ValidIssuer = jwt["Issuer"],
-            ValidateAudience = true,
-            ValidAudience = jwt["Audience"],
-            ValidateIssuerSigningKey = true,
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwt["SigningKey"]!)),
-            ValidateLifetime = true,
-        };
+            options.Authority = authority;       // OIDC discovery + JWKS fetched from the IdP
+            options.Audience = jwt["Audience"];
+            options.TokenValidationParameters = new TokenValidationParameters
+            {
+                ValidateIssuer = true,
+                ValidateAudience = true,
+                ValidAudience = jwt["Audience"],
+                ValidateIssuerSigningKey = true,
+                ValidateLifetime = true,
+                NameClaimType = "sub",
+            };
+        }
+        else
+        {
+            options.TokenValidationParameters = new TokenValidationParameters
+            {
+                ValidateIssuer = true,
+                ValidIssuer = jwt["Issuer"],
+                ValidateAudience = true,
+                ValidAudience = jwt["Audience"],
+                ValidateIssuerSigningKey = true,
+                IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwt["SigningKey"]!)),
+                ValidateLifetime = true,
+            };
+        }
     });
 builder.Services.AddAuthorization();
+builder.Services.AddMemoryCache();
 builder.Services.AddOpenApi();
 
 foreach (var module in modules)
