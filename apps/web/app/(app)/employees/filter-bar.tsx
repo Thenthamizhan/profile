@@ -2,9 +2,9 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
+import { Button, Input } from "@/components/ui";
 
 const STATUSES = ["", "active", "on_leave", "terminated"] as const;
-const field = "rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-900";
 
 /// Search + status filter. Submitting navigates with new query params (resets the cursor,
 /// so filtering always starts from the first page).
@@ -32,18 +32,25 @@ export function FilterBar({ search, status }: { search: string; status: string }
         }}
         className="flex gap-2"
       >
-        <input
+        <Input
           value={value}
           onChange={(e) => setValue(e.target.value)}
           placeholder="Search name, no, email…"
-          className={`${field} w-64`}
+          className="w-64"
         />
-        <button className="rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800">
+        <Button type="submit" variant="secondary">
           Search
-        </button>
+        </Button>
       </form>
 
-      <select value={status} onChange={(e) => apply({ status: e.target.value })} className={field} aria-label="Status filter">
+      {/* Native select keeps this control simple and form-friendly; the Radix Select is reserved
+          for richer cases. Styled to match the Input. */}
+      <select
+        value={status}
+        onChange={(e) => apply({ status: e.target.value })}
+        aria-label="Status filter"
+        className="h-9 rounded-[var(--radius-app)] border border-input bg-surface px-3 text-sm text-foreground shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      >
         {STATUSES.map((s) => (
           <option key={s || "all"} value={s}>
             {s === "" ? "All statuses" : s}
@@ -57,7 +64,7 @@ export function FilterBar({ search, status }: { search: string; status: string }
             setValue("");
             router.push("/employees");
           }}
-          className="text-sm text-gray-500 hover:text-gray-700 hover:underline"
+          className="text-sm text-muted-foreground hover:text-foreground hover:underline"
         >
           Clear
         </button>

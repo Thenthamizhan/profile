@@ -7,8 +7,10 @@ import { defineConfig, devices } from "@playwright/test";
 // Prereqs: `pnpm infra:up` (Postgres+Redis) and `dotnet`/`pnpm` on PATH.
 // Run:     pnpm -C apps/web exec playwright test
 
-const API_PORT = 5080;
-const WEB_PORT = 3000;
+// Ports are overridable via env so the suite can run on a machine where another project already
+// holds 3000/5080 (CI leaves them unset → the documented 3000/5080 defaults).
+const API_PORT = Number(process.env.E2E_API_PORT ?? 5080);
+const WEB_PORT = Number(process.env.E2E_WEB_PORT ?? 3000);
 const API_BASE = `http://127.0.0.1:${API_PORT}`;
 
 const DB_APP = "Host=localhost;Port=5544;Database=sahahr;Username=sahahr_app;Password=sahahr_app_pw;SSL Mode=Disable";
@@ -49,11 +51,11 @@ export default defineConfig({
     },
     {
       // Next.js app (dev mode for fast startup), pointed at the API
-      command: "pnpm dev",
+      command: `pnpm dev --port ${WEB_PORT}`,
       url: `http://localhost:${WEB_PORT}/login`,
       timeout: 120_000,
       reuseExistingServer: !process.env.CI,
-      env: { SAHAHR_API_URL: API_BASE },
+      env: { SAHAHR_API_URL: API_BASE, PORT: String(WEB_PORT) },
     },
   ],
 });

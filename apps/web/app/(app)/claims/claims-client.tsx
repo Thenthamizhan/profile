@@ -2,18 +2,39 @@
 
 import { useActionState } from "react";
 import type { ClaimItem } from "@/lib/api";
+import {
+  Alert,
+  Badge,
+  type BadgeProps,
+  Button,
+  Input,
+  Label,
+  Table,
+  TableContainer,
+  TBody,
+  TD,
+  TH,
+  THead,
+  TR,
+} from "@/components/ui";
 import { submitClaimAction, decideClaimAction, type ClaimState } from "./actions";
 
-const input = "rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-900";
-const btn = "rounded-md bg-gray-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-gray-800 disabled:opacity-50";
+const selectClass =
+  "h-9 w-full rounded-[var(--radius-app)] border border-input bg-surface px-3 text-sm text-foreground shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
 
-function StatusBadge({ status }: { status: string }) {
-  const tone =
-    status === "reimbursed" ? "bg-green-50 text-green-700"
-    : status === "approved" ? "bg-blue-50 text-blue-700"
-    : status === "rejected" ? "bg-red-50 text-red-600"
-    : "bg-amber-50 text-amber-700"; // pending
-  return <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${tone}`}>{status}</span>;
+/// Claim-specific tone: `approved` (awaiting reimbursement) reads as info, distinct from the
+/// terminal `reimbursed` success state.
+function claimTone(status: string): NonNullable<BadgeProps["tone"]> {
+  switch (status) {
+    case "reimbursed":
+      return "success";
+    case "approved":
+      return "info";
+    case "rejected":
+      return "danger";
+    default:
+      return "warning"; // pending
+  }
 }
 
 function money(amount: number, currency: string): string {
@@ -24,36 +45,45 @@ function money(amount: number, currency: string): string {
 export function SubmitClaimForm() {
   const [state, action, pending] = useActionState<ClaimState, FormData>(submitClaimAction, {});
   return (
-    <form action={action} className="grid grid-cols-1 gap-3 rounded-xl border border-gray-200 bg-white p-5 shadow-sm sm:grid-cols-2 lg:grid-cols-3">
-      <label className="flex flex-col gap-1 text-xs text-gray-600 lg:col-span-3">
+    <form
+      action={action}
+      className="grid grid-cols-1 gap-3 rounded-[var(--radius-app)] border border-border bg-surface p-5 shadow-sm sm:grid-cols-2 lg:grid-cols-3"
+    >
+      <Label className="lg:col-span-3">
         Employee ID
-        <input name="employeeId" placeholder="paste an employee id (from the Employees page)" required className={input} />
-      </label>
-      <label className="flex flex-col gap-1 text-xs text-gray-600">
+        <Input name="employeeId" placeholder="paste an employee id (from the Employees page)" required />
+      </Label>
+      <Label>
         Category
-        <select name="category" defaultValue="travel" className={input}>
+        <select name="category" defaultValue="travel" className={selectClass}>
           <option value="travel">travel</option>
           <option value="meals">meals</option>
           <option value="equipment">equipment</option>
           <option value="other">other</option>
         </select>
-      </label>
-      <label className="flex flex-col gap-1 text-xs text-gray-600">
+      </Label>
+      <Label>
         Amount
-        <input name="amount" type="number" min="0.01" step="0.01" placeholder="0.00" required className={input} />
-      </label>
-      <label className="flex flex-col gap-1 text-xs text-gray-600">
+        <Input name="amount" type="number" min="0.01" step="0.01" placeholder="0.00" required />
+      </Label>
+      <Label>
         Currency
-        <input name="currency" defaultValue="SGD" maxLength={3} className={input} />
-      </label>
-      <label className="flex flex-col gap-1 text-xs text-gray-600 lg:col-span-2">
+        <Input name="currency" defaultValue="SGD" maxLength={3} />
+      </Label>
+      <Label className="lg:col-span-2">
         Description
-        <input name="description" placeholder="(optional)" className={input} />
-      </label>
+        <Input name="description" placeholder="(optional)" />
+      </Label>
       <div className="flex items-end">
-        <button type="submit" disabled={pending} className={btn}>{pending ? "Submitting…" : "Submit claim"}</button>
+        <Button type="submit" disabled={pending}>
+          {pending ? "Submitting…" : "Submit claim"}
+        </Button>
       </div>
-      {state.error && <p className="col-span-full text-sm text-red-600">{state.error}</p>}
+      {state.error && (
+        <Alert tone="danger" className="col-span-full">
+          {state.error}
+        </Alert>
+      )}
     </form>
   );
 }
@@ -69,43 +99,47 @@ export function ClaimsTable({
 }) {
   const showActions = canApprove || canReimburse;
   return (
-    <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
-      <table className="w-full text-left text-sm">
-        <thead className="border-b border-gray-200 bg-gray-50 text-xs uppercase tracking-wide text-gray-500">
-          <tr>
-            <th className="px-4 py-3">Category</th>
-            <th className="px-4 py-3">Amount</th>
-            <th className="px-4 py-3">Status</th>
-            <th className="px-4 py-3">Description</th>
-            {showActions && <th className="px-4 py-3 text-right">Actions</th>}
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-gray-100">
+    <TableContainer>
+      <Table>
+        <THead>
+          <TR>
+            <TH>Category</TH>
+            <TH>Amount</TH>
+            <TH>Status</TH>
+            <TH>Description</TH>
+            {showActions && <TH className="text-right">Actions</TH>}
+          </TR>
+        </THead>
+        <TBody>
           {items.map((c) => (
-            <tr key={c.id} data-testid="claim-row" data-claim-status={c.status} className="text-gray-800">
-              <td className="px-4 py-3">{c.category}</td>
-              <td className="px-4 py-3 font-medium">{money(c.amount, c.currency)}</td>
-              <td className="px-4 py-3"><StatusBadge status={c.status} /></td>
-              <td className="px-4 py-3 text-gray-600">{c.description ?? "—"}</td>
+            <TR key={c.id} data-testid="claim-row" data-claim-status={c.status}>
+              <TD>{c.category}</TD>
+              <TD className="font-medium">{money(c.amount, c.currency)}</TD>
+              <TD>
+                <Badge tone={claimTone(c.status)}>{c.status}</Badge>
+              </TD>
+              <TD className="text-muted-foreground">{c.description ?? "—"}</TD>
               {showActions && (
-                <td className="px-4 py-3 text-right">
+                <TD className="text-right">
                   {canApprove && c.status === "pending" && <DecideButtons id={c.id} />}
                   {canReimburse && c.status === "approved" && <ReimburseButton id={c.id} />}
                   {!(canApprove && c.status === "pending") && !(canReimburse && c.status === "approved") && (
-                    <span className="text-xs text-gray-300">—</span>
+                    <span className="text-xs text-muted-foreground">—</span>
                   )}
-                </td>
+                </TD>
               )}
-            </tr>
+            </TR>
           ))}
           {items.length === 0 && (
-            <tr>
-              <td colSpan={showActions ? 5 : 4} className="px-4 py-10 text-center text-sm text-gray-400">No claims.</td>
-            </tr>
+            <TR>
+              <TD colSpan={showActions ? 5 : 4} className="py-10 text-center text-muted-foreground">
+                No claims.
+              </TD>
+            </TR>
           )}
-        </tbody>
-      </table>
-    </div>
+        </TBody>
+      </Table>
+    </TableContainer>
   );
 }
 
@@ -114,10 +148,12 @@ function DecideButtons({ id }: { id: string }) {
   return (
     <form action={action} className="inline-flex gap-1" title={state.error ?? ""}>
       <input type="hidden" name="id" value={id} />
-      <button type="submit" name="decision" value="approve" disabled={pending}
-        className="rounded-md bg-blue-600 px-2 py-1 text-xs font-medium text-white hover:bg-blue-700 disabled:opacity-50">Approve</button>
-      <button type="submit" name="decision" value="reject" disabled={pending}
-        className="rounded-md border border-red-200 px-2 py-1 text-xs font-medium text-red-600 hover:bg-red-50 disabled:opacity-50">Reject</button>
+      <Button type="submit" name="decision" value="approve" size="sm" disabled={pending}>
+        Approve
+      </Button>
+      <Button type="submit" name="decision" value="reject" variant="danger" size="sm" disabled={pending}>
+        Reject
+      </Button>
     </form>
   );
 }
@@ -127,10 +163,9 @@ function ReimburseButton({ id }: { id: string }) {
   return (
     <form action={action} className="inline-flex" title={state.error ?? ""}>
       <input type="hidden" name="id" value={id} />
-      <button type="submit" name="decision" value="reimburse" disabled={pending}
-        className="rounded-md bg-green-600 px-2 py-1 text-xs font-medium text-white hover:bg-green-700 disabled:opacity-50">
+      <Button type="submit" name="decision" value="reimburse" variant="success" size="sm" disabled={pending}>
         {pending ? "…" : "Reimburse"}
-      </button>
+      </Button>
     </form>
   );
 }

@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { getToken, hasPerm, SEED } from "@/lib/session";
 import { listEmployees, type Employee } from "@/lib/api";
+import { Alert, Button } from "@/components/ui";
 import { CreateForm } from "./create-form";
 import { EmployeeTable } from "./employee-table";
 import { FilterBar } from "./filter-bar";
@@ -47,47 +49,58 @@ export default async function EmployeesPage({
 
   return (
     <main className="mx-auto max-w-5xl px-6 py-8">
-      <h1 className="text-2xl font-semibold text-gray-900">Employees</h1>
+      <div className="flex flex-col gap-1">
+        <h1 className="text-2xl font-semibold tracking-tight text-foreground">Employees</h1>
+        <p className="text-sm text-muted-foreground">Directory of people in your organisation.</p>
+      </div>
 
       {error && (
-        <div className="mt-6 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        <Alert tone="danger" className="mt-6">
           {error} — is the API running on <span className="font-mono">:5080</span>?
-        </div>
+        </Alert>
       )}
 
       {canWrite ? (
         <section className="mt-6">
-          <h2 className="mb-2 text-sm font-medium text-gray-700">Add employee</h2>
+          <h2 className="mb-2 text-sm font-medium text-foreground">Add employee</h2>
           <CreateForm companyId={SEED.companyId} />
         </section>
       ) : (
-        <p className="mt-6 text-sm text-gray-500">Read-only — you lack <code>employee.write</code>.</p>
+        <p className="mt-6 text-sm text-muted-foreground">
+          Read-only — you lack <code>employee.write</code>.
+        </p>
       )}
 
       <section className="mt-8">
         <div className="mb-3 flex items-center justify-between gap-4">
           <FilterBar search={search} status={status} />
-          <p className="shrink-0 text-xs text-gray-400">Click a row to view, edit, or delete.</p>
+          <p className="shrink-0 text-xs text-muted-foreground">Click a row to view, edit, or delete.</p>
         </div>
 
         <EmployeeTable employees={employees} canWrite={canWrite} canDelete={canDelete} />
 
         <nav className="mt-4 flex items-center justify-between text-sm">
-          <span className="text-gray-400">
+          <span className="text-muted-foreground">
             {employees.length} shown{!onFirstPage ? " (paged)" : ""}
           </span>
           <div className="flex gap-2">
             {!onFirstPage && (
-              <Link href={firstHref} className="rounded-md border border-gray-300 px-3 py-1.5 text-gray-700 hover:bg-gray-50">
-                ← First page
-              </Link>
+              <Button asChild variant="secondary" size="sm">
+                <Link href={firstHref}>
+                  <ChevronLeft /> First page
+                </Link>
+              </Button>
             )}
             {nextHref ? (
-              <Link href={nextHref} className="rounded-md border border-gray-300 px-3 py-1.5 text-gray-700 hover:bg-gray-50">
-                Next →
-              </Link>
+              <Button asChild variant="secondary" size="sm">
+                <Link href={nextHref}>
+                  Next <ChevronRight />
+                </Link>
+              </Button>
             ) : (
-              <span className="rounded-md border border-gray-100 px-3 py-1.5 text-gray-300">Next →</span>
+              <Button variant="secondary" size="sm" disabled>
+                Next <ChevronRight />
+              </Button>
             )}
           </div>
         </nav>

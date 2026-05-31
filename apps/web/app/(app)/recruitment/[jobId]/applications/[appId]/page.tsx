@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { ChevronLeft } from "lucide-react";
 import { getToken, hasPerm } from "@/lib/session";
 import { listOffers, listInterviews, type Offer, type Interview } from "@/lib/api";
+import { Alert } from "@/components/ui";
 import { OffersPanel, InterviewsPanel } from "./panels";
 
 export const dynamic = "force-dynamic";
@@ -38,30 +40,45 @@ export default async function ApplicationDetailPage({
 
   return (
     <main className="mx-auto max-w-4xl px-6 py-8">
-      <div className="flex items-center gap-3 text-sm text-gray-500">
-        <Link href={`/recruitment/${jobId}`} className="hover:text-gray-700 hover:underline">← Back to board</Link>
-      </div>
+      <Link
+        href={`/recruitment/${jobId}`}
+        className="inline-flex items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground"
+      >
+        <ChevronLeft className="size-4" aria-hidden /> Back to board
+      </Link>
 
-      <h1 className="mt-3 text-2xl font-semibold text-gray-900">Application</h1>
-      <p className="mt-1 font-mono text-xs text-gray-500">{appId}</p>
+      <h1 className="mt-3 text-2xl font-semibold tracking-tight text-foreground">Application</h1>
+      <p className="mt-1 font-mono text-xs text-muted-foreground">{appId}</p>
 
       <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
         {canReadOffers ? (
           <div>
-            {offersError && <p className="mb-2 text-sm text-red-600">{offersError}</p>}
+            {offersError && (
+              <Alert tone="danger" className="mb-2">
+                {offersError}
+              </Alert>
+            )}
             <OffersPanel applicationId={appId} offers={offers} canWrite={canWriteOffers} />
           </div>
         ) : (
-          <p className="text-sm text-gray-400">You lack <code>offer.read</code>.</p>
+          <p className="text-sm text-muted-foreground">
+            You lack <code>offer.read</code>.
+          </p>
         )}
 
         {canReadInterviews ? (
           <div>
-            {interviewsError && <p className="mb-2 text-sm text-red-600">{interviewsError}</p>}
+            {interviewsError && (
+              <Alert tone="danger" className="mb-2">
+                {interviewsError}
+              </Alert>
+            )}
             <InterviewsPanel applicationId={appId} interviews={interviews} canWrite={canWriteInterviews} />
           </div>
         ) : (
-          <p className="text-sm text-gray-400">You lack <code>interview.read</code>.</p>
+          <p className="text-sm text-muted-foreground">
+            You lack <code>interview.read</code>.
+          </p>
         )}
       </div>
     </main>
