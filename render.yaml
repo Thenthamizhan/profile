@@ -1,14 +1,21 @@
-# Render blueprint for the SahaHR API (Docker). The Next.js web app deploys to Vercel, NOT here.
-# Database is Neon (external) — not provisioned by Render.
+# Render Blueprint (render.yaml) for the SahaHR API (Docker). Deploy: Render dashboard →
+# "New +" → "Blueprint" → pick this repo; Render reads this file. The Next.js web app deploys to
+# Vercel (NOT here); the database is Neon (external, NOT provisioned by Render).
 #
-# Secrets (sync:false) are entered in the Render dashboard, never committed:
+# Secrets entered in the dashboard (sync:false — never committed). Shapes: apps/api/.env.production.example
 #   - ConnectionStrings__Default   : Neon app-role conn (sahahr_app) — DIRECT endpoint, SSL Mode=Require
 #   - ConnectionStrings__Migrator  : Neon owner-role conn (migrations / RLS-exempt work)
-#   - Jwt__SigningKey              : >=32-char random secret (HS256)
+#   - Jwt__SigningKey              : >=32-char random secret (HS256). MUST be sync:false (a known
+#       value), NOT Render's generateValue — see the "demo token" note below.
 #
-# After first deploy: run migrations once against Neon (see DEPLOY.md) —
-#   node scripts/migrate/run.mjs up "<owner conn>"
-# Render does not auto-migrate; schema changes are applied out-of-band by design.
+# Migrations: Render does NOT auto-migrate (the .NET runtime image has neither Node nor psql, so the
+# Node migration runner can't run as a preDeployCommand). Neon is already at 0005; apply future
+# migrations out-of-band from a workstation:  node scripts/migrate/run.mjs up "<owner conn>"
+#
+# Demo token note: in Production the /v1/dev/token endpoint is disabled (404) and no real IdP is
+# wired yet (see DEPLOY.md "Production gates"). To exercise the deployed API you must mint a JWT
+# signed with the SAME Jwt__SigningKey set here — which is why it is a KNOWN secret (sync:false),
+# not an opaque generated one.
 
 services:
   - type: web
@@ -16,9 +23,13 @@ services:
     runtime: docker
     repo: https://github.com/mvshashni/sahahr
     branch: main
+    autoDeploy: true            # deploy on push to main (CI gates the branch first)
+    numInstances: 1             # IMPORTANT: the OutboxDispatcher + NotificationDeliveryWorker are
+                                # in-process singletons; >1 instance would double-process the outbox.
+                                # Scale horizontally only after moving relays to a leased/locked worker.
     dockerfilePath: apps/api/Dockerfile
     dockerContext: .            # build from repo root so the .sln + module projects resolve
-    plan: starter               # free tier sleeps; starter avoids cold starts for a demo
+    plan: starter               # free tier sleeps (~50s cold start — looks broken in a demo); starter avoids it
     region: singapore           # match the Neon region (ap-southeast-1) to cut latency
     healthCheckPath: /health
     envVars:
@@ -30,7 +41,7 @@ services:
       - key: ConnectionStrings__Migrator
         sync: false
       - key: Jwt__Issuer
-        value: https://sahahr-api.onrender.com
+        value: https://sahahr-api.onrender.com   # update to your actual Render URL after first deploy
       - key: Jwt__Audience
         value: sahahr-api
       - key: Jwt__SigningKey
