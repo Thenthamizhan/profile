@@ -1,26 +1,76 @@
 @import "tailwindcss";
 
+/*
+  SahaHR design tokens — "calm enterprise" (architecture §14.1): neutral, accessible-by-default,
+  Workday/Rippling restraint. Tailwind v4 CSS-first config. Semantic tokens map to a slate-based
+  neutral ramp + a single indigo brand accent; status colors are AA-contrast on their tints.
+*/
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #f8fafc;            /* slate-50 — app canvas */
+  --surface: #ffffff;              /* cards, panels */
+  --surface-muted: #f1f5f9;        /* slate-100 — table headers, subtle fills */
+  --foreground: #0f172a;           /* slate-900 — primary text */
+  --muted-foreground: #64748b;     /* slate-500 — secondary text */
+  --border: #e2e8f0;               /* slate-200 */
+  --input: #cbd5e1;                /* slate-300 */
+  --ring: #6366f1;                 /* indigo-500 — focus ring */
+
+  --primary: #4f46e5;              /* indigo-600 — brand actions */
+  --primary-foreground: #ffffff;
+  --primary-hover: #4338ca;        /* indigo-700 */
+
+  --accent: #eef2ff;               /* indigo-50 — active nav, subtle highlight */
+  --accent-foreground: #3730a3;    /* indigo-800 */
+
+  --success: #15803d; --success-bg: #f0fdf4;   /* green-700 on green-50 */
+  --warning: #b45309; --warning-bg: #fffbeb;   /* amber-700 on amber-50 */
+  --danger:  #dc2626; --danger-bg:  #fef2f2;   /* red-600  on red-50  */
+  --info:    #1d4ed8; --info-bg:    #eff6ff;   /* blue-700 on blue-50 */
+
+  --radius: 0.625rem;              /* 10px — rounded-xl baseline */
 }
 
 @theme inline {
   --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-surface-muted: var(--surface-muted);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary-hover: var(--primary-hover);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-success: var(--success);
+  --color-success-bg: var(--success-bg);
+  --color-warning: var(--warning);
+  --color-warning-bg: var(--warning-bg);
+  --color-danger: var(--danger);
+  --color-danger-bg: var(--danger-bg);
+  --color-info: var(--info);
+  --color-info-bg: var(--info-bg);
+  --radius-app: var(--radius);
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+* {
+  border-color: var(--border);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Visible, consistent focus ring for keyboard users (WCAG 2.4.7). */
+:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
 }
