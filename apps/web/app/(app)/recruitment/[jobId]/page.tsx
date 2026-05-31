@@ -1,8 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { decode, getToken, hasPerm, permissions } from "@/lib/session";
+import { getToken, hasPerm } from "@/lib/session";
 import { getBoard, type Board } from "@/lib/api";
-import { TopNav } from "../../nav";
 import { Kanban } from "./kanban";
 
 export const dynamic = "force-dynamic";
@@ -20,7 +19,6 @@ export default async function BoardPage({ params }: { params: Promise<{ jobId: s
   }
 
   const { jobId } = await params;
-  const claims = decode(token);
   const canMove = hasPerm(token, "application.move");
 
   let board: Board | null = null;
@@ -33,15 +31,7 @@ export default async function BoardPage({ params }: { params: Promise<{ jobId: s
 
   return (
     <main className="mx-auto max-w-6xl px-6 py-8">
-      <TopNav
-        tenantId={claims.tenant_id}
-        permCount={permissions(token).length}
-        canSeePeople={hasPerm(token, "employee.read")}
-        canSeeRecruitment
-        active="recruitment"
-      />
-
-      <div className="mt-6 flex items-center gap-3">
+      <div className="flex items-center gap-3">
         <Link href="/recruitment" className="text-sm text-gray-500 hover:text-gray-700 hover:underline">
           ← All positions
         </Link>

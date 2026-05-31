@@ -1,7 +1,6 @@
 import { redirect } from "next/navigation";
-import { decode, getToken, hasPerm, permissions } from "@/lib/session";
+import { getToken, hasPerm } from "@/lib/session";
 import { listClaims, type ClaimItem } from "@/lib/api";
-import { TopNav } from "../nav";
 import { SubmitClaimForm, ClaimsTable } from "./claims-client";
 
 export const dynamic = "force-dynamic";
@@ -22,7 +21,6 @@ export default async function ClaimsPage({
     );
   }
 
-  const claims = decode(token);
   const canRequest = hasPerm(token, "claim.request");
   const canApprove = hasPerm(token, "claim.approve");
   const canReimburse = hasPerm(token, "claim.reimburse");
@@ -40,16 +38,7 @@ export default async function ClaimsPage({
 
   return (
     <main className="mx-auto max-w-5xl px-6 py-8">
-      <TopNav
-        tenantId={claims.tenant_id}
-        permCount={permissions(token).length}
-        canSeePeople={hasPerm(token, "employee.read")}
-        canSeeRecruitment={hasPerm(token, "job.read")}
-        canSeeLeave={hasPerm(token, "leave.read")}
-        canSeeClaims
-        active="claims"
-      />
-      <h1 className="mt-6 text-2xl font-semibold text-gray-900">Expense claims</h1>
+      <h1 className="text-2xl font-semibold text-gray-900">Expense claims</h1>
 
       {error && (
         <div className="mt-6 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">

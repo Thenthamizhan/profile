@@ -1,8 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { decode, getToken, hasPerm, permissions } from "@/lib/session";
+import { getToken, hasPerm } from "@/lib/session";
 import { listJobs, type Job } from "@/lib/api";
-import { TopNav } from "../nav";
 
 export const dynamic = "force-dynamic";
 
@@ -18,7 +17,6 @@ export default async function RecruitmentPage() {
     );
   }
 
-  const claims = decode(token);
   let jobs: Job[] = [];
   let error: string | null = null;
   try {
@@ -29,17 +27,7 @@ export default async function RecruitmentPage() {
 
   return (
     <main className="mx-auto max-w-5xl px-6 py-8">
-      <TopNav
-        tenantId={claims.tenant_id}
-        permCount={permissions(token).length}
-        canSeePeople={hasPerm(token, "employee.read")}
-        canSeeRecruitment
-        canSeeLeave={hasPerm(token, "leave.read")}
-        canSeeClaims={hasPerm(token, "claim.read")}
-        active="recruitment"
-      />
-
-      <h1 className="mt-6 text-2xl font-semibold text-gray-900">Open positions</h1>
+      <h1 className="text-2xl font-semibold text-gray-900">Open positions</h1>
       <p className="mt-1 text-sm text-gray-500">Select a role to open its hiring pipeline.</p>
 
       {error && (

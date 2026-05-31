@@ -1,11 +1,10 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { decode, getToken, hasPerm, permissions, SEED } from "@/lib/session";
+import { getToken, hasPerm, SEED } from "@/lib/session";
 import { listEmployees, type Employee } from "@/lib/api";
 import { CreateForm } from "./create-form";
 import { EmployeeTable } from "./employee-table";
 import { FilterBar } from "./filter-bar";
-import { TopNav } from "../nav";
 
 export const dynamic = "force-dynamic";
 
@@ -19,7 +18,6 @@ export default async function EmployeesPage({
   const token = await getToken();
   if (!token) redirect("/login");
 
-  const claims = decode(token);
   const canWrite = hasPerm(token, "employee.write");
   const canDelete = hasPerm(token, "employee.delete");
 
@@ -49,16 +47,7 @@ export default async function EmployeesPage({
 
   return (
     <main className="mx-auto max-w-5xl px-6 py-8">
-      <TopNav
-        tenantId={claims.tenant_id}
-        permCount={permissions(token).length}
-        canSeePeople
-        canSeeRecruitment={hasPerm(token, "job.read")}
-        canSeeLeave={hasPerm(token, "leave.read")}
-        canSeeClaims={hasPerm(token, "claim.read")}
-        active="people"
-      />
-      <h1 className="mt-6 text-2xl font-semibold text-gray-900">Employees</h1>
+      <h1 className="text-2xl font-semibold text-gray-900">Employees</h1>
 
       {error && (
         <div className="mt-6 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">

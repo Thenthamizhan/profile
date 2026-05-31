@@ -1,8 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { decode, getToken, hasPerm, permissions } from "@/lib/session";
+import { getToken, hasPerm } from "@/lib/session";
 import { listOffers, listInterviews, type Offer, type Interview } from "@/lib/api";
-import { TopNav } from "../../../../nav";
 import { OffersPanel, InterviewsPanel } from "./panels";
 
 export const dynamic = "force-dynamic";
@@ -16,7 +15,6 @@ export default async function ApplicationDetailPage({
   if (!token) redirect("/login");
 
   const { jobId, appId } = await params;
-  const claims = decode(token);
 
   const canReadOffers = hasPerm(token, "offer.read");
   const canWriteOffers = hasPerm(token, "offer.write");
@@ -40,15 +38,7 @@ export default async function ApplicationDetailPage({
 
   return (
     <main className="mx-auto max-w-4xl px-6 py-8">
-      <TopNav
-        tenantId={claims.tenant_id}
-        permCount={permissions(token).length}
-        canSeePeople={hasPerm(token, "employee.read")}
-        canSeeRecruitment
-        active="recruitment"
-      />
-
-      <div className="mt-6 flex items-center gap-3 text-sm text-gray-500">
+      <div className="flex items-center gap-3 text-sm text-gray-500">
         <Link href={`/recruitment/${jobId}`} className="hover:text-gray-700 hover:underline">← Back to board</Link>
       </div>
 

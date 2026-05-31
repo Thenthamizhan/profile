@@ -1,7 +1,6 @@
 import { redirect } from "next/navigation";
-import { decode, getToken, hasPerm, permissions } from "@/lib/session";
+import { getToken, hasPerm } from "@/lib/session";
 import { listLeave, type LeaveRequestItem } from "@/lib/api";
-import { TopNav } from "../nav";
 import { SubmitLeaveForm, LeaveTable } from "./leave-client";
 
 export const dynamic = "force-dynamic";
@@ -22,7 +21,6 @@ export default async function LeavePage({
     );
   }
 
-  const claims = decode(token);
   const canRequest = hasPerm(token, "leave.request");
   const canApprove = hasPerm(token, "leave.approve");
 
@@ -39,16 +37,7 @@ export default async function LeavePage({
 
   return (
     <main className="mx-auto max-w-5xl px-6 py-8">
-      <TopNav
-        tenantId={claims.tenant_id}
-        permCount={permissions(token).length}
-        canSeePeople={hasPerm(token, "employee.read")}
-        canSeeRecruitment={hasPerm(token, "job.read")}
-        canSeeLeave
-        canSeeClaims={hasPerm(token, "claim.read")}
-        active="leave"
-      />
-      <h1 className="mt-6 text-2xl font-semibold text-gray-900">Leave requests</h1>
+      <h1 className="text-2xl font-semibold text-gray-900">Leave requests</h1>
 
       {error && (
         <div className="mt-6 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
