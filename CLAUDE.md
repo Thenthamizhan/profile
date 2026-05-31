@@ -17,10 +17,13 @@ the **operational cheat-sheet** — the things that cost real time to (re)discov
 
 ```
 apps/api/      ASP.NET Core 9 modular monolith (SahaHR.sln). Bounded contexts = modules:
-               Common (tenancy, outbox, RBAC, audit, DbContext), Identity, People, Recruitment.
-apps/web/      Next.js 16 + React 19 admin app (server-side BFF). e2e/ = Playwright.
-db/init/       Canonical SQL: 01 roles, 02 core schema+RLS, 03 seed, 04 ATS schema, 05 ATS seed.
-               ⚠ Runs ONLY on first container init (see DEBT-002).
+               Common (tenancy, outbox, RBAC, audit, DbContext, Security cipher, Observability),
+               Identity, People, Recruitment, Notifications, Leave (+Claims).
+apps/web/      Next.js 16 + React 19 admin app (server-side BFF). UI design system in
+               components/ui (calm-enterprise, §14); authenticated shell = app/(app) route group.
+               e2e/ = Playwright.
+db/init/       Canonical SQL: 01 roles, 02 core schema+RLS, 03 seed, 04 ATS, 05 ATS seed,
+               06 notifications, 07 leave, 08 claims. ⚠ Runs ONLY on first container init (DEBT-002).
 db/neon/       Neon (cloud) bootstrap + one-off grant scripts.
 scripts/fitness/  Executable architectural fitness functions (FF-1..18). `pnpm ff`.
 infra/         docker-compose (local Postgres+Redis). Terraform/Helm later.
@@ -77,7 +80,27 @@ CI runs all three on push/PR.
 
 6. **Browser/E2E via Playwright, not hand-driving.** Manual browser tooling here was flaky
    (stale element refs, tab handling). The Playwright suite in `apps/web/e2e` is the reliable path —
-   extend it instead.
+   extend it instead. Ports are overridable: `E2E_WEB_PORT` / `E2E_API_PORT` (CI uses 3000/5080) —
+   needed when another project already holds those ports locally.
+
+7. **Some services read config at *registration* time, before `builder.Build()`** — connection
+   strings, the PII `Encryption:DataKey`, and `RateLimit:PermitLimit`. The env-var provider outranks
+   appsettings and is in place then; `ConfigureAppConfiguration`/`UseSetting` overrides may be too
+   late. So integration tests that need to override these set **environment variables** (see
+   `SahaHrApiFactory` and `OpsHardeningTests`' `RateLimit__PermitLimit`).
+
+## Security & ops (env vars)
+
+- **`Encryption__DataKey`** (base64, 32 bytes) — REQUIRED. PII (`employee.national_id/dob/bank`) is
+  AES-256-GCM encrypted at rest (§8.3); the API **fails fast at startup** without it. Dev/test key is
+  in `appsettings.Development.json` / `SahaHrApiFactory`. Generate prod: `openssl rand -base64 32`.
+- **`Jwt__Authority`** set → production OIDC: tokens validated against the IdP JWKS, perms resolved
+  from RBAC tables by `PermissionClaimsTransformation`. Unset → dev HS256 mint (`/v1/dev/token`,
+  Development only). See `docs/AUTH.md`.
+- **`RateLimit__PermitLimit` / `__WindowSeconds`** — coarse global limiter (per subject, else IP).
+  Production default 120/60s; Development is effectively unlimited so suites aren't throttled.
+- Unhandled exceptions → RFC7807 ProblemDetails (no stack leak in prod); every response carries an
+  `X-Correlation-Id` and logs are JSON-with-scopes outside Development.
 
 ## Architectural invariants (enforced by fitness functions — don't break them)
 

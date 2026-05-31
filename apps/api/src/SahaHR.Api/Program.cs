@@ -1,8 +1,11 @@
 using System.Text;
+using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Npgsql;
+using SahaHR.Common.Observability;
 using SahaHR.Common.Auditing;
 using SahaHR.Common.Eventing;
 using SahaHR.Common.Modules;
@@ -22,6 +25,14 @@ var builder = WebApplication.CreateBuilder(args);
 var port = Environment.GetEnvironmentVariable("PORT");
 if (!string.IsNullOrWhiteSpace(port))
     builder.WebHost.UseUrls($"http://0.0.0.0:{port}");
+
+// Structured JSON logs (with scopes, e.g. the per-request CorrelationId) outside Development, so the
+// platform log aggregator can parse + query them. Development keeps the readable console formatter.
+if (!builder.Environment.IsDevelopment())
+{
+    builder.Logging.ClearProviders();
+    builder.Logging.AddJsonConsole(o => o.IncludeScopes = true);
+}
 
 // --- modules (bounded contexts as in-process modules) ---
 IModule[] modules = [new IdentityModule(), new PeopleModule(), new RecruitmentModule(), new NotificationsModule(), new LeaveModule()];
@@ -104,13 +115,46 @@ builder.Services.AddAuthorization();
 builder.Services.AddMemoryCache();
 builder.Services.AddOpenApi();
 
+// --- ops hardening: RFC7807 errors, rate limiting, observability ---
+builder.Services.AddProblemDetails();
+builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
+
+// Coarse abuse guard. Partition by authenticated subject when present, else client IP. Limits are
+// config-driven (RateLimit:PermitLimit / WindowSeconds); Development sets a very high limit so the
+// test/E2E suites are never throttled. Tune down per environment in production config.
+var rateLimit = builder.Configuration.GetSection("RateLimit");
+var permitLimit = rateLimit.GetValue<int?>("PermitLimit") ?? 120;
+var windowSeconds = rateLimit.GetValue<int?>("WindowSeconds") ?? 60;
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(ctx =>
+    {
+        var key = ctx.User.FindFirst("sub")?.Value
+            ?? ctx.Connection.RemoteIpAddress?.ToString()
+            ?? "anonymous";
+        return RateLimitPartition.GetFixedWindowLimiter(key, _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = permitLimit,
+            Window = TimeSpan.FromSeconds(windowSeconds),
+            QueueLimit = 0,
+        });
+    });
+    options.OnRejected = async (context, token) =>
+        await context.HttpContext.Response.WriteAsJsonAsync(
+            new { title = "Too many requests.", status = StatusCodes.Status429TooManyRequests }, token);
+});
+
 foreach (var module in modules)
     module.Register(builder.Services, builder.Configuration);
 
 var app = builder.Build();
 
+app.UseExceptionHandler();                       // RFC7807 ProblemDetails for unhandled exceptions
+app.UseMiddleware<CorrelationMiddleware>();      // correlation id + logging scope, earliest possible
 app.MapOpenApi();
 app.UseAuthentication();
+app.UseRateLimiter();                            // after auth so the partition can key on the subject
 app.UseMiddleware<TenantContextMiddleware>();
 app.UseAuthorization();
 
