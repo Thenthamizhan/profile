@@ -1,0 +1,8 @@
+# Keep build context small + reproducible — never ship local build outputs or secrets.
+**/bin/
+**/obj/
+**/.vs/
+**/*.user
+.env
+.env.*
+!.env.example

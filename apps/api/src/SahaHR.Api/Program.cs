@@ -16,6 +16,12 @@ using SahaHR.Modules.Leave;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Bind the platform-provided port (Render/Heroku/Cloud Run set $PORT) on all interfaces.
+// Locally PORT is unset, so the default ASPNETCORE_URLS / launch profile applies unchanged.
+var port = Environment.GetEnvironmentVariable("PORT");
+if (!string.IsNullOrWhiteSpace(port))
+    builder.WebHost.UseUrls($"http://0.0.0.0:{port}");
+
 // --- modules (bounded contexts as in-process modules) ---
 IModule[] modules = [new IdentityModule(), new PeopleModule(), new RecruitmentModule(), new NotificationsModule(), new LeaveModule()];
 builder.Services.AddSingleton(new ModuleAssemblies(modules.Select(m => m.GetType().Assembly)));
@@ -53,7 +59,8 @@ builder.Services
     .AddJwtBearer(options =>
     {
         options.MapInboundClaims = false;       // keep "sub", "tenant_id", "perm" verbatim
-        options.RequireHttpsMetadata = false;   // dev; real IdP serves HTTPS metadata
+        // HTTPS metadata is only relaxed outside production (dev/test over http).
+        options.RequireHttpsMetadata = !builder.Environment.IsDevelopment();
         options.TokenValidationParameters = new TokenValidationParameters
         {
             ValidateIssuer = true,

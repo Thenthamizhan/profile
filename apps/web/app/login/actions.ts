@@ -15,6 +15,7 @@ export async function login(formData: FormData): Promise<void> {
   store.set(COOKIE, token, {
     httpOnly: true,
     sameSite: "lax",
+    secure: process.env.NODE_ENV === "production", // HTTPS-only off localhost
     path: "/",
     maxAge: 60 * 60,
   });
