@@ -17,7 +17,13 @@ export function CreateForm({ companyId }: { companyId: string }) {
       <Input name="lastName" placeholder="Last name *" required />
       <Input name="workEmail" type="email" placeholder="Work email" />
       <Input name="hireDate" type="date" aria-label="Hire date" />
+      <Input name="nationalId" placeholder="National ID (NRIC/FIN)" aria-label="National ID" autoComplete="off" />
+      <Input name="dateOfBirth" type="date" aria-label="Date of birth" />
+      <Input name="bankAccount" placeholder="Bank account" aria-label="Bank account" autoComplete="off" />
       <input type="hidden" name="companyId" value={companyId} />
+      <p className="col-span-full -mt-1 text-xs text-muted-foreground">
+        National ID, date of birth and bank account are encrypted at rest.
+      </p>
       <Button type="submit" disabled={pending}>
         {pending ? "Saving…" : "Add employee"}
       </Button>

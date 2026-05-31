@@ -23,6 +23,9 @@ export async function createEmployeeAction(_prev: CreateState, formData: FormDat
     lastName: String(formData.get("lastName") ?? "").trim(),
     workEmail: String(formData.get("workEmail") ?? "").trim() || null,
     hireDate: String(formData.get("hireDate") ?? "").trim() || null,
+    nationalId: String(formData.get("nationalId") ?? "").trim() || null,
+    dateOfBirth: String(formData.get("dateOfBirth") ?? "").trim() || null,
+    bankAccount: String(formData.get("bankAccount") ?? "").trim() || null,
   };
 
   if (!input.employeeNo || !input.firstName || !input.lastName) {
@@ -45,6 +48,9 @@ export async function updateEmployeeAction(_prev: MutateState, formData: FormDat
     lastName: String(formData.get("lastName") ?? "").trim() || null,
     workEmail: String(formData.get("workEmail") ?? "").trim() || null,
     status: String(formData.get("status") ?? "").trim() || null,
+    nationalId: String(formData.get("nationalId") ?? "").trim() || null,
+    dateOfBirth: String(formData.get("dateOfBirth") ?? "").trim() || null,
+    bankAccount: String(formData.get("bankAccount") ?? "").trim() || null,
   };
 
   const res = await updateEmployee(id, input);

@@ -49,6 +49,7 @@ public sealed class SahaHrApiFactory : WebApplicationFactory<Program>, IAsyncLif
         Environment.SetEnvironmentVariable("Jwt__Issuer", "https://test.sahahr.local");
         Environment.SetEnvironmentVariable("Jwt__Audience", "sahahr-api");
         Environment.SetEnvironmentVariable("Jwt__SigningKey", "test-signing-key-must-be-at-least-32-characters-long!!");
+        Environment.SetEnvironmentVariable("Encryption__DataKey", "UFxb3wGDtmWuZUawhUCxyJtOQ+Xg/vAjS94xGxEyFc0=");
 
         // Ensure init scripts (schema + seed) finished before any test runs.
         for (var attempt = 0; attempt < 60; attempt++)
@@ -81,6 +82,7 @@ public sealed class SahaHrApiFactory : WebApplicationFactory<Program>, IAsyncLif
                 ["Jwt:Issuer"] = "https://test.sahahr.local",
                 ["Jwt:Audience"] = "sahahr-api",
                 ["Jwt:SigningKey"] = "test-signing-key-must-be-at-least-32-characters-long!!",
+                ["Encryption:DataKey"] = "UFxb3wGDtmWuZUawhUCxyJtOQ+Xg/vAjS94xGxEyFc0=",
             });
         });
     }

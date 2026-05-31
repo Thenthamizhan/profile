@@ -1,8 +1,9 @@
 # SahaHR — Deployment & Readiness Review
 
 **Target:** Web → **Vercel**, API → **Render** (Docker), DB → **Neon** (already provisioned).
-**Status of this review:** ✅ ready for a **staging / demo** deploy. ⚠️ **NOT yet cleared for real
-employee PII** — see "Production gates" at the bottom. Read that section before loading real data.
+**Status of this review:** ✅ ready for a **staging / demo** deploy. Employee PII is now encrypted at
+rest (§8.3) and the API is OIDC-capable. ⚠️ **NOT yet cleared for production with real end users** —
+auth/IdP wiring and candidate-phone encryption remain. See "Production gates" at the bottom.
 
 ## Architecture (why the split is clean)
 
@@ -78,15 +79,20 @@ After the first green CI run, apply the ruleset in `CONTRIBUTING.md` (require th
 
 ## ⚠️ Production gates — do NOT load real employee data until these close
 
-This codebase is **staging-grade**. Two architectural commitments from the blueprint remain open:
+This codebase is **staging-grade**. Progress on the blueprint's hardening commitments:
 
-1. **PII encryption is not implemented.** `employee.national_id_enc / dob_enc / bank_account_enc` and
-   `candidate.phone_enc` are `bytea` placeholders — there is no envelope/KMS encryption yet (§8.3).
-   Storing real NRIC / bank / DOB data now would be a PDPA/GDPR breach. Keep demo data synthetic.
-2. **Auth is the dev-JWT model, not a real IdP.** Production login (Keycloak/OIDC, password/MFA) is
-   not built. In Production the dev-token endpoint is *off* (404), which means **there is currently no
-   way for a real user to obtain a token in Production** — fine for a backend/API demo, but the login
-   flow must be wired to a real IdP before end users sign in.
+1. **PII encryption at rest — IMPLEMENTED for employee PII (§8.3).** `employee.national_id_enc /
+   dob_enc / bank_account_enc` are encrypted with AES-256-GCM at the application layer
+   (`IFieldCipher`); the key comes from `Encryption__DataKey` (base64, 32 bytes) and the API fails
+   fast at startup without it. Decrypted values are returned only to authorized callers and are kept
+   out of the audit log (only presence flags are recorded). **Still open:** `candidate.phone_enc`
+   (Recruitment) is not yet wired, and there is no key-rotation / envelope-KMS story — the single data
+   key is the rotation boundary. Employee NRIC/DOB/bank may be stored now; keep candidate phone synthetic.
+2. **Auth — the API is OIDC-capable; the IdP + web flow remain.** The API validates real OIDC/JWKS
+   tokens when `Jwt__Authority` is set and resolves permissions from the RBAC tables (docs/AUTH.md).
+   **Still open:** standing up Keycloak and wiring the web BFF Authorization Code flow. Until then an
+   environment runs in dev-JWT mode (the dev-token endpoint is 404 in Production), so there is no real
+   end-user login in Production yet.
 
 Also worth noting (not blockers for a demo): `Jwt__SigningKey` is a symmetric HS256 secret (rotate via
 Render env); Render's free tier sleeps (use `starter` to avoid cold starts); Neon must stay on the

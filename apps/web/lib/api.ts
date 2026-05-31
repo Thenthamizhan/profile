@@ -13,6 +13,10 @@ export type Employee = {
   workEmail: string | null;
   status: string;
   hireDate: string | null;
+  // Sensitive PII — encrypted at rest on the API (§8.3); returned decrypted to authorized callers.
+  nationalId: string | null;
+  dateOfBirth: string | null;
+  bankAccount: string | null;
 };
 
 export type CreateInput = {
@@ -22,6 +26,9 @@ export type CreateInput = {
   lastName: string;
   workEmail: string | null;
   hireDate: string | null;
+  nationalId?: string | null;
+  dateOfBirth?: string | null;
+  bankAccount?: string | null;
 };
 
 // Matches UpdateEmployeeRequest on the API — all fields optional (partial update).
@@ -30,6 +37,9 @@ export type UpdateInput = {
   lastName?: string | null;
   workEmail?: string | null;
   status?: string | null;
+  nationalId?: string | null;
+  dateOfBirth?: string | null;
+  bankAccount?: string | null;
 };
 
 export type Result = { ok: boolean; status: number };

@@ -74,6 +74,41 @@ public sealed class EmployeeSliceTests
     }
 
     [Fact]
+    public async Task Pii_is_encrypted_at_rest_and_decrypts_on_read()
+    {
+        var client = _factory.CreateClient();
+        Authorize(client, await TokenAsync(client, TenantA, userId: SeededUser));
+
+        var create = await client.PostAsJsonAsync("/v1/employees", new
+        {
+            companyId = CompanyA, employeeNo = NewEmployeeNo(), firstName = "Pia", lastName = "Aye",
+            workEmail = (string?)null, hireDate = (string?)null,
+            nationalId = "S1234567A", dateOfBirth = "1990-01-15", bankAccount = "123-456-789",
+        });
+        Assert.Equal(HttpStatusCode.Created, create.StatusCode);
+        var created = await create.Content.ReadFromJsonAsync<EmployeePiiDto>();
+        Assert.NotNull(created);
+
+        // Reads round-trip (decrypted) through the API.
+        var fetched = await client.GetFromJsonAsync<EmployeePiiDto>($"/v1/employees/{created!.id}");
+        Assert.Equal("S1234567A", fetched!.nationalId);
+        Assert.Equal("1990-01-15", fetched.dateOfBirth);
+        Assert.Equal("123-456-789", fetched.bankAccount);
+
+        // At rest: the column is populated, but the plaintext byte sequence is NOT present in storage.
+        Assert.Equal(1L, await _factory.OwnerScalarAsync(
+            $"SELECT count(*) FROM employee WHERE id = '{created.id}' AND national_id_enc IS NOT NULL"));
+        Assert.Equal(1L, await _factory.OwnerScalarAsync(
+            $"SELECT count(*) FROM employee WHERE id = '{created.id}' AND position(convert_to('S1234567A','UTF8') in national_id_enc) = 0"));
+
+        // The (unencrypted) audit_log must not leak the plaintext NRIC.
+        Assert.Equal(0L, await _factory.OwnerScalarAsync(
+            "SELECT count(*) FROM audit_log WHERE after::text LIKE '%S1234567A%'"));
+    }
+
+    private sealed record EmployeePiiDto(string id, string employeeNo, string? nationalId, string? dateOfBirth, string? bankAccount);
+
+    [Fact]
     public async Task Write_requires_write_permission()
     {
         var client = _factory.CreateClient();

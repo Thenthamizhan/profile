@@ -7,6 +7,7 @@ using SahaHR.Common.Auditing;
 using SahaHR.Common.Eventing;
 using SahaHR.Common.Modules;
 using SahaHR.Common.Persistence;
+using SahaHR.Common.Security;
 using SahaHR.Common.Tenancy;
 using SahaHR.Modules.Identity;
 using SahaHR.Modules.People;
@@ -48,6 +49,9 @@ var ownerConnection = builder.Configuration.GetConnectionString("Migrator")
 builder.Services.AddSingleton(new OwnerDataSource(NpgsqlDataSource.Create(ownerConnection)));
 
 // --- platform services ---
+// PII field cipher (§8.3). Built at registration so a missing/invalid key fails fast at startup
+// rather than silently storing plaintext. Key comes from config/secret (never the database).
+builder.Services.AddSingleton<IFieldCipher>(AesGcmFieldCipher.FromBase64Key(builder.Configuration["Encryption:DataKey"]));
 builder.Services.AddScoped<IEventBus, OutboxEventBus>();
 builder.Services.AddScoped<IAuditWriter, AuditWriter>();
 builder.Services.AddHostedService<OutboxDispatcher>();

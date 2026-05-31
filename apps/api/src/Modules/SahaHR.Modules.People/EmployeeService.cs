@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using SahaHR.Common.Auditing;
 using SahaHR.Common.Eventing;
 using SahaHR.Common.Persistence;
+using SahaHR.Common.Security;
 using SahaHR.Common.Tenancy;
 using SahaHR.Modules.People.Contracts;
 using SahaHR.Modules.People.Domain;
@@ -17,13 +18,15 @@ public sealed class EmployeeService
     private readonly ITenantContext _tenant;
     private readonly IEventBus _events;
     private readonly IAuditWriter _audit;
+    private readonly IFieldCipher _cipher;
 
-    public EmployeeService(SahaHrDbContext db, ITenantContext tenant, IEventBus events, IAuditWriter audit)
+    public EmployeeService(SahaHrDbContext db, ITenantContext tenant, IEventBus events, IAuditWriter audit, IFieldCipher cipher)
     {
         _db = db;
         _tenant = tenant;
         _events = events;
         _audit = audit;
+        _cipher = cipher;
     }
 
     public async Task<EmployeeResponse> CreateAsync(CreateEmployeeRequest request, CancellationToken ct)
@@ -38,6 +41,9 @@ public sealed class EmployeeService
             WorkEmail = request.WorkEmail,
             HireDate = request.HireDate,
             Status = "active",
+            NationalIdEnc = _cipher.Encrypt(request.NationalId),
+            DobEnc = _cipher.Encrypt(request.DateOfBirth),
+            BankAccountEnc = _cipher.Encrypt(request.BankAccount),
         };
 
         _db.Set<Employee>().Add(employee);
@@ -47,7 +53,7 @@ public sealed class EmployeeService
             CompanyId = employee.CompanyId,
             EmployeeNo = employee.EmployeeNo,
         });
-        _audit.Record("employee.create", "employee", employee.Id, after: ToResponse(employee));
+        _audit.Record("employee.create", "employee", employee.Id, after: AuditView(employee));
 
         await _db.SaveChangesAsync(ct);
         return ToResponse(employee);
@@ -190,8 +196,12 @@ public sealed class EmployeeService
         if (request.LastName is not null) employee.LastName = request.LastName;
         if (request.WorkEmail is not null) employee.WorkEmail = request.WorkEmail;
         if (request.Status is not null) employee.Status = request.Status;
+        // Pass an empty string to clear a PII field (Encrypt returns null); null leaves it unchanged.
+        if (request.NationalId is not null) employee.NationalIdEnc = _cipher.Encrypt(request.NationalId);
+        if (request.DateOfBirth is not null) employee.DobEnc = _cipher.Encrypt(request.DateOfBirth);
+        if (request.BankAccount is not null) employee.BankAccountEnc = _cipher.Encrypt(request.BankAccount);
 
-        _audit.Record("employee.update", "employee", employee.Id, after: ToResponse(employee));
+        _audit.Record("employee.update", "employee", employee.Id, after: AuditView(employee));
         await _db.SaveChangesAsync(ct);
         return ToResponse(employee);
     }
@@ -207,6 +217,23 @@ public sealed class EmployeeService
         return true;
     }
 
-    private static EmployeeResponse ToResponse(Employee e) =>
-        new(e.Id, e.CompanyId, e.EmployeeNo, e.FirstName, e.LastName, e.WorkEmail, e.Status, e.HireDate);
+    private EmployeeResponse ToResponse(Employee e) =>
+        new(e.Id, e.CompanyId, e.EmployeeNo, e.FirstName, e.LastName, e.WorkEmail, e.Status, e.HireDate,
+            _cipher.Decrypt(e.NationalIdEnc), _cipher.Decrypt(e.DobEnc), _cipher.Decrypt(e.BankAccountEnc));
+
+    /// Audit projection that NEVER includes decrypted PII — records only presence of the encrypted
+    /// fields, so the (unencrypted) audit_log cannot leak NRIC / DOB / bank details.
+    private static object AuditView(Employee e) => new
+    {
+        e.CompanyId,
+        e.EmployeeNo,
+        e.FirstName,
+        e.LastName,
+        e.WorkEmail,
+        e.Status,
+        e.HireDate,
+        HasNationalId = e.NationalIdEnc is not null,
+        HasDob = e.DobEnc is not null,
+        HasBankAccount = e.BankAccountEnc is not null,
+    };
 }

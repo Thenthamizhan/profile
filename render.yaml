@@ -7,6 +7,8 @@
 #   - ConnectionStrings__Migrator  : Neon owner-role conn (migrations / RLS-exempt work)
 #   - Jwt__SigningKey              : >=32-char random secret (HS256). MUST be sync:false (a known
 #       value), NOT Render's generateValue — see the "demo token" note below.
+#   - Encryption__DataKey          : base64-encoded 32-byte AES-256 key for PII-at-rest (§8.3).
+#       REQUIRED — the API fails fast at startup without it. Generate: openssl rand -base64 32
 #
 # Migrations: Render does NOT auto-migrate (the .NET runtime image has neither Node nor psql, so the
 # Node migration runner can't run as a preDeployCommand). Neon is already at 0005; apply future
@@ -45,4 +47,6 @@ services:
       - key: Jwt__Audience
         value: sahahr-api
       - key: Jwt__SigningKey
+        sync: false
+      - key: Encryption__DataKey   # base64 32-byte AES key (PII at rest, §8.3). REQUIRED — see header.
         sync: false

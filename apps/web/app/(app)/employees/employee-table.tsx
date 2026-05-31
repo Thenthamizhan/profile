@@ -159,6 +159,12 @@ function EmployeeDrawer({
           <dd className="col-span-2 text-foreground">{employee.workEmail ?? "—"}</dd>
           <dt className="text-muted-foreground">Hire date</dt>
           <dd className="col-span-2 text-foreground">{employee.hireDate ?? "—"}</dd>
+          <dt className="text-muted-foreground">National ID</dt>
+          <dd className="col-span-2 font-mono text-foreground">{employee.nationalId ?? "—"}</dd>
+          <dt className="text-muted-foreground">Date of birth</dt>
+          <dd className="col-span-2 text-foreground">{employee.dateOfBirth ?? "—"}</dd>
+          <dt className="text-muted-foreground">Bank account</dt>
+          <dd className="col-span-2 font-mono text-foreground">{employee.bankAccount ?? "—"}</dd>
         </dl>
 
         {canWrite ? (
@@ -208,6 +214,19 @@ function EditForm({ employee, onDone }: { employee: Employee; onDone: () => void
           ))}
         </select>
       </Label>
+      <Label>
+        National ID
+        <Input name="nationalId" defaultValue={employee.nationalId ?? ""} autoComplete="off" />
+      </Label>
+      <Label>
+        Date of birth
+        <Input name="dateOfBirth" type="date" defaultValue={employee.dateOfBirth ?? ""} />
+      </Label>
+      <Label>
+        Bank account
+        <Input name="bankAccount" defaultValue={employee.bankAccount ?? ""} autoComplete="off" />
+      </Label>
+      <p className="text-xs text-muted-foreground">Encrypted at rest.</p>
       <Button type="submit" disabled={pending} className="mt-1">
         {pending ? "Saving…" : "Save changes"}
       </Button>
