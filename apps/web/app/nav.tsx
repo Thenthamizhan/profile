@@ -9,6 +9,7 @@ export function TopNav({
   canSeePeople,
   canSeeRecruitment,
   canSeeLeave = false,
+  canSeeClaims = false,
   active,
 }: {
   tenantId?: string;
@@ -16,7 +17,8 @@ export function TopNav({
   canSeePeople: boolean;
   canSeeRecruitment: boolean;
   canSeeLeave?: boolean;
-  active: "people" | "recruitment" | "leave";
+  canSeeClaims?: boolean;
+  active: "people" | "recruitment" | "leave" | "claims";
 }) {
   const link = (href: string, label: string, isActive: boolean) => (
     <Link
@@ -37,6 +39,7 @@ export function TopNav({
           {canSeePeople && link("/employees", "Employees", active === "people")}
           {canSeeRecruitment && link("/recruitment", "Recruitment", active === "recruitment")}
           {canSeeLeave && link("/leave", "Leave", active === "leave")}
+          {canSeeClaims && link("/claims", "Claims", active === "claims")}
         </nav>
       </div>
       <div className="flex items-center gap-4">

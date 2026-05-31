@@ -235,3 +235,39 @@ export async function decideLeave(id: string, decision: "approve" | "reject"): P
   const res = await authed(`/v1/leave-requests/${id}/${decision}`, { method: "POST" });
   return { ok: res.ok, status: res.status };
 }
+
+// ---- Claims (expense claims) ----
+
+export type ClaimItem = {
+  id: string;
+  employeeId: string;
+  category: string;
+  amount: number;
+  currency: string;
+  status: string; // pending|approved|rejected|reimbursed
+  description: string | null;
+};
+
+export async function listClaims(status?: string): Promise<ClaimItem[]> {
+  const suffix = status ? `?status=${encodeURIComponent(status)}` : "";
+  const res = await authed(`/v1/claims${suffix}`);
+  if (!res.ok) throw new Error(`Failed to load claims (${res.status})`);
+  return (await res.json()) as ClaimItem[];
+}
+
+export async function submitClaim(input: {
+  employeeId: string;
+  category: string;
+  amount: number;
+  currency: string | null;
+  description: string | null;
+}): Promise<Result> {
+  const res = await authed("/v1/claims", { method: "POST", body: JSON.stringify(input) });
+  return { ok: res.ok, status: res.status };
+}
+
+/// decision is one of the claim transitions: approve | reject | reimburse.
+export async function decideClaim(id: string, decision: "approve" | "reject" | "reimburse"): Promise<Result> {
+  const res = await authed(`/v1/claims/${id}/${decision}`, { method: "POST" });
+  return { ok: res.ok, status: res.status };
+}

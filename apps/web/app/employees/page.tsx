@@ -54,6 +54,8 @@ export default async function EmployeesPage({
         permCount={permissions(token).length}
         canSeePeople
         canSeeRecruitment={hasPerm(token, "job.read")}
+        canSeeLeave={hasPerm(token, "leave.read")}
+        canSeeClaims={hasPerm(token, "claim.read")}
         active="people"
       />
       <h1 className="mt-6 text-2xl font-semibold text-gray-900">Employees</h1>

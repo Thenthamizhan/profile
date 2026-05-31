@@ -34,6 +34,8 @@ export default async function RecruitmentPage() {
         permCount={permissions(token).length}
         canSeePeople={hasPerm(token, "employee.read")}
         canSeeRecruitment
+        canSeeLeave={hasPerm(token, "leave.read")}
+        canSeeClaims={hasPerm(token, "claim.read")}
         active="recruitment"
       />
 
